@@ -1,0 +1,1 @@
+web: gunicorn OpticorAI_project_management_system.wsgi
