@@ -16,6 +16,12 @@ CSRF_TRUSTED_ORIGINS = [
     'https://web-production-60bd4.up.railway.app'
 ] + os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
 
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+print("ALLOWED_HOSTS =", ALLOWED_HOSTS)
+print("CSRF_TRUSTED_ORIGINS =", CSRF_TRUSTED_ORIGINS)
+
 # Security hardening
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
