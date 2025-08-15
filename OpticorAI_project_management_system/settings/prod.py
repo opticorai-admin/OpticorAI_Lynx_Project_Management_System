@@ -4,7 +4,7 @@ import os
 
 DEBUG = False
 
-SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+SECRET_KEY = os.environ['dxnl0q@bvrj$x8b**h*088h7mro+nb!wl6mzumk9+1z4za4zq&']
 
 ALLOWED_HOSTS = [
     'web-production-60bd4.up.railway.app',
