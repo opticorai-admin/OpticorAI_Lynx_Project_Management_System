@@ -6,7 +6,15 @@ DEBUG = False
 
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'web-production-60bd4.up.railway.app').split(',') if os.environ.get('DJANGO_ALLOWED_HOSTS') else []
+ALLOWED_HOSTS = [
+    'web-production-60bd4.up.railway.app',
+    '127.0.0.1',
+    'localhost'
+] if os.environ.get('DJANGO_ALLOWED_HOSTS') else []
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-60bd4.up.railway.app',
+]
 
 # Security hardening
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
