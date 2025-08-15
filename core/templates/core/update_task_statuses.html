@@ -1,0 +1,185 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item">Settings</li>
+        <li class="breadcrumb-item active">Update Task Statuses</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fa fa-clock"></i> Update Task Statuses</h4>
+                    <div class="card-header-actions">
+                        <a href="{% url 'core:settings-dashboard' %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Settings
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ total_tasks }}</h3>
+                                    <p class="mb-0">Total Tasks</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ open_tasks }}</h3>
+                                    <p class="mb-0">Open Tasks</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ due_tasks }}</h3>
+                                    <p class="mb-0">Due Tasks</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ closed_tasks }}</h3>
+                                    <p class="mb-0">Closed Tasks</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if tasks_need_update > 0 %}
+                    <div class="alert alert-warning">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Tasks Need Status Updates</h6>
+                        <p class="mb-2">Found <strong>{{ tasks_need_update }}</strong> tasks that need their status updated:</p>
+                        <ul class="mb-0">
+                            {% if overdue_tasks.count > 0 %}
+                                <li><strong>{{ overdue_tasks.count }}</strong> tasks are overdue (past close date)</li>
+                            {% endif %}
+                            {% if completed_tasks.count > 0 %}
+                                <li><strong>{{ completed_tasks.count }}</strong> tasks are completed (100%) but not marked as closed</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <h6><i class="fa fa-check-circle"></i> All Tasks Up to Date</h6>
+                        <p class="mb-0">All task statuses are current. No updates needed.</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fa fa-exclamation-triangle"></i> Overdue Tasks</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if overdue_tasks %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Task</th>
+                                                        <th>Responsible</th>
+                                                        <th>Close Date</th>
+                                                        <th>Completion</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for task in overdue_tasks %}
+                                                    <tr>
+                                                        <td>{{ task.issue_action|truncatechars:30 }}</td>
+                                                        <td>{{ task.responsible.get_full_name }}</td>
+                                                        <td>{{ task.close_date }}</td>
+                                                        <td>{{ task.percentage_completion }}%</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted mb-0">No overdue tasks found.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fa fa-check-circle"></i> Completed Tasks</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if completed_tasks %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Task</th>
+                                                        <th>Responsible</th>
+                                                        <th>Completion</th>
+                                                        <th>Current Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for task in completed_tasks %}
+                                                    <tr>
+                                                        <td>{{ task.issue_action|truncatechars:30 }}</td>
+                                                        <td>{{ task.responsible.get_full_name }}</td>
+                                                        <td>{{ task.percentage_completion }}%</td>
+                                                        <td>
+                                                            <span class="badge badge-{% if task.status == 'open' %}primary{% else %}warning{% endif %}">
+                                                                {{ task.get_status_display }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted mb-0">No completed tasks found.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary" {% if tasks_need_update == 0 %}disabled{% endif %}>
+                                <i class="fa fa-sync"></i> Update All Task Statuses
+                            </button>
+                            <a href="{% url 'core:settings-dashboard' %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </form>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="alert alert-info">
+                            <h6><i class="fa fa-info-circle"></i> How Task Status Updates Work</h6>
+                            <ul class="mb-0">
+                                <li><strong>Open → Closed:</strong> When completion reaches 100%</li>
+                                <li><strong>Open → Due:</strong> When close date has passed and completion < 100%</li>
+                                <li><strong>Due → Open:</strong> When close date is in the future and completion < 100%</li>
+                                <li><strong>Due → Closed:</strong> When completion reaches 100%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

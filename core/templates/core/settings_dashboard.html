@@ -1,0 +1,95 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item active">Settings Dashboard</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+
+<div class="container container-md-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4><i class="fa fa-cog"></i> Settings Dashboard</h4>
+          <p class="text-muted">Manage KPIs for your organization (Quality Types are managed by Admin)</p>
+        </div>
+        <div class="card-body">
+          <!-- Statistics Cards -->
+          <div class="row g-4 mb-4">
+            <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+              <div class="dashboard-card h-100">
+                <div class="dashboard-card-title">TOTAL KPIs</div>
+                <div class="dashboard-card-value">{{ kpi_count|default:0 }}</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="dashboard-card h-100">
+                <div class="dashboard-card-title">AVAILABLE QUALITY TYPES</div>
+                <div class="dashboard-card-value">{{ quality_type_count|default:0 }}</div>
+                <small class="text-muted">(Managed by Admin)</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h5>Quick Actions</h5>
+              <div class="btn-group d-block d-md-flex flex-wrap flex-md-nowrap" role="group">
+                <a href="{% url 'core:kpi-create' %}" class="btn btn-primary w-100 mb-2 mb-md-0 mr-md-2">
+                  <i class="fa fa-plus"></i> Add New KPI
+                </a>
+                <a href="{% url 'core:update-task-statuses' %}" class="btn btn-warning w-100 mb-2 mb-md-0">
+                  <i class="fa fa-clock"></i> Update Task Statuses
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Items -->
+          <div class="row">
+            <div class="col-12">
+              <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                  <h6 class="mb-0"><i class="fa fa-chart-line"></i> Recent KPIs</h6>
+                  <a href="{% url 'core:kpi-list' %}" class="btn btn-sm btn-outline-primary mt-2 mt-md-0">View All</a>
+                </div>
+                <div class="card-body">
+                  {% if recent_kpis %}
+                    <div class="list-group list-group-flush">
+                      {% for kpi in recent_kpis %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+                          <div>
+                            <strong>{{ kpi.name }}</strong>
+                            <br>
+                            <small class="text-muted">Created: {{ kpi.created_at|date:"M d, Y" }}</small>
+                          </div>
+                          <div class="btn-group btn-group-sm mt-2 mt-md-0">
+                            <a href="{% url 'core:kpi-edit' kpi.pk %}" class="btn btn-outline-primary btn-sm">
+                              <i class="fa fa-edit"></i>
+                            </a>
+                            <a href="{% url 'core:kpi-delete' kpi.pk %}" class="btn btn-outline-danger btn-sm">
+                              <i class="fa fa-trash"></i>
+                            </a>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <p class="text-muted">No KPIs created yet.</p>
+                    <a href="{% url 'core:kpi-create' %}" class="btn btn-primary btn-sm">Create First KPI</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} 

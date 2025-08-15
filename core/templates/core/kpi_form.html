@@ -1,0 +1,117 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item">Settings</li>
+        <li class="breadcrumb-item">Manage KPIs</li>
+        <li class="breadcrumb-item active">{% if object %}Edit KPI{% else %}Create KPI{% endif %}</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h4>
+            <i class="fa fa-chart-line"></i>
+            {% if object %}Edit KPI{% else %}Create New KPI{% endif %}
+          </h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+              <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="alert alert-danger mt-2">
+                  {{ form.name.errors }}
+                </div>
+              {% endif %}
+              {% if form.name.help_text %}
+                <small class="form-text text-muted">{{ form.name.help_text }}</small>
+              {% endif %}
+            </div>
+
+            <div class="form-group mt-3">
+              <label for="{{ form.weight.id_for_label }}">{{ form.weight.label }}</label>
+              {{ form.weight }}
+              {% if form.weight.errors %}
+                <div class="alert alert-danger mt-2">
+                  {{ form.weight.errors }}
+                </div>
+              {% endif %}
+              {% if form.weight.help_text %}
+                <small class="form-text text-muted">{{ form.weight.help_text }}</small>
+              {% endif %}
+            </div>
+
+            <div class="form-group mt-3">
+              <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="alert alert-danger mt-2">
+                  {{ form.description.errors }}
+                </div>
+              {% endif %}
+              {% if form.description.help_text %}
+                <small class="form-text text-muted">{{ form.description.help_text }}</small>
+              {% endif %}
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                  <div class="custom-control custom-checkbox">
+                    {{ form.is_active }}
+                    <label class="custom-control-label" for="{{ form.is_active.id_for_label }}">
+                      Active
+                    </label>
+                  </div>
+                  {% if form.is_active.errors %}
+                    <div class="alert alert-danger mt-2">
+                      {{ form.is_active.errors }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.sort_order.id_for_label }}">{{ form.sort_order.label }}</label>
+                  {{ form.sort_order }}
+                  {% if form.sort_order.errors %}
+                    <div class="alert alert-danger mt-2">
+                      {{ form.sort_order.errors }}
+                    </div>
+                  {% endif %}
+                  {% if form.sort_order.help_text %}
+                    <small class="form-text text-muted">{{ form.sort_order.help_text }}</small>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group mt-4">
+              <div class="btn-group" role="group">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fa fa-save"></i>
+                  {% if object %}Update KPI{% else %}Create KPI{% endif %}
+                </button>
+                <a href="{% url 'core:kpi-list' %}" class="btn btn-secondary">
+                  <i class="fa fa-times"></i> Cancel
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} 

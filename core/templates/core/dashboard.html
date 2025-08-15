@@ -1,0 +1,786 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item active">
+            {% if user.user_type == 'admin' %}Admin Dashboard
+            {% elif user.user_type == 'manager' %}Manager Dashboard
+            {% else %}Employee Dashboard{% endif %}
+        </li>
+{% endblock breadcrumb%}
+
+{% block content %}
+
+<div class="container-fluid">
+  {% if user.user_type != 'admin' %}
+  <div class="row g-4 mb-4 dashboard-cards">
+    <div class="col-6 col-lg-3">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">TOTAL CLOSED</div>
+            <div class="dashboard-card-value">{{ closed_tasks|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mt-md-0 mt-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">TOTAL DUE</div>
+            <div class="dashboard-card-value">{{ due_tasks|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mt-lg-0 mt-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">TOTAL OPEN</div>
+            <div class="dashboard-card-value">{{ open_tasks|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 mt-lg-0 mt-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">TOTAL TASKS</div>
+            <div class="dashboard-card-value">{{ total_tasks|default:0 }}</div>
+        </div>
+    </div>
+  </div>
+  {% endif %}
+
+<div class="animated fadeIn">
+  {% if user.user_type == 'admin' %}
+  <div class="row g-4 mb-4 dashboard-cards">
+    
+    <div class="col-12 col-md-3">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">TOTAL Users</div>
+            <div class="dashboard-card-value">{{ users.count|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3 mt-md-0 mt-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">Managers</div>
+            <div class="dashboard-card-value">{{ managers.count|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3 mt-md-0 mt-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">Employees</div>
+            <div class="dashboard-card-value">{{ employees.count|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3 mt-md-0 mt-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">Evaluation System</div>
+            <div class="dashboard-card-value">
+                <a href="{% url 'core:evaluation-demo' %}" class="btn btn-sm btn-outline-light">
+                    <i class="fa fa-calculator"></i> View Demo
+                </a>
+            </div>
+        </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="row">
+    {% if user.user_type == 'admin' %}
+    <!-- Admin Dashboard -->
+    <div class="col-sm-12 col-md-4">
+      <div class="card text-white bg-primary">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ users.count }}</h4>
+          <p>Total Users</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart1" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-md-4">
+      <div class="card text-white bg-info">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ managers.count }}</h4>
+          <p>Managers</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart2" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-md-4">
+      <div class="card text-white bg-warning">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ employees.count }}</h4>
+          <p>Employees</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart4" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    {% elif user.user_type == 'manager' %}
+    <!-- Manager Dashboard -->
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-primary">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ subordinates.count }}</h4>
+          <p>Subordinates</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart1" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-info">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ subordinate_tasks.count }}</h4>
+          <p>Subordinate Tasks</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart2" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-warning">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ open_tasks|default:0 }}</h4>
+          <p>Open Tasks</p>
+        </div>
+        <div class="chart-wrapper" style="height:70px;">
+          <canvas id="card-chart3" class="chart chartjs-render-monitor" height="70" width="280" style="display: block; width: 280px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-danger">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ due_tasks|default:0 }}</h4>
+          <p>Due Tasks</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart4" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    {% else %}
+    <!-- Employee Dashboard -->
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-primary">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ my_tasks.count }}</h4>
+          <p>My Tasks</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart1" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-info">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ closed_tasks|default:0 }}</h4>
+          <p>Completed Tasks</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart2" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-warning">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ open_tasks|default:0 }}</h4>
+          <p>Open Tasks</p>
+        </div>
+        <div class="chart-wrapper" style="height:70px;">
+          <canvas id="card-chart3" class="chart chartjs-render-monitor" height="70" width="280" style="display: block; width: 280px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-12 col-lg-6">
+      <div class="card text-white bg-danger">
+        <div class="card-body pb-0">
+          <h4 class="mb-0">{{ due_tasks|default:0 }}</h4>
+          <p>Due Tasks</p>
+        </div>
+        <div class="chart-wrapper px-3" style="height:70px;">
+          <canvas id="card-chart4" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  
+  <!-- Role-specific sections -->
+  {% if user.user_type == 'admin' %}
+  <!-- Admin-specific features -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <strong>System Overview</strong>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-primary">{{ users.count }}</h4>
+                <p class="text-muted">Total Users</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-info">{{ managers.count }}</h4>
+                <p class="text-muted">Managers</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-warning">{{ employees.count }}</h4>
+                <p class="text-muted">Employees</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row mt-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <strong>Quick Actions</strong>
+        </div>
+        <div class="card-body">
+          <div class="btn-group-vertical w-100" role="group">
+            <a href="{% url 'core:users' %}" class="btn btn-outline-primary mb-2">
+              <i class="fa fa-users"></i> Manage Users
+            </a>
+            <a href="{% url 'core:new-user' %}" class="btn btn-outline-success mb-2">
+              <i class="fa fa-user-plus"></i> Create New User
+            </a>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  {% elif user.user_type == 'manager' %}
+  <!-- Manager specific features -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <strong>Team Management</strong>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="text-center">
+                <h4 class="text-primary">{{ subordinates.count }}</h4>
+                <p class="text-muted">Direct Subordinates</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center">
+                <h4 class="text-info">{{ subordinate_tasks.count }}</h4>
+                <p class="text-muted">Team Tasks</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center">
+                <h4 class="text-warning">{{ due_tasks|default:0 }}</h4>
+                <p class="text-muted">Due Tasks</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Evaluations Section -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <strong>Pending Evaluations</strong>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for task in pending_evaluations %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>{{ task.issue_action|truncatechars:30 }}</strong><br>
+                    <small class="text-muted">{{ task.responsible.get_full_name }}</small>
+                  </div>
+                  <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                    Evaluate
+                  </a>
+                </div>
+              </div>
+            {% empty %}
+              <div class="text-center text-muted">
+                <p>No pending evaluations</p>
+              </div>
+            {% endfor %}
+          </div>
+          
+          <!-- Pagination for Pending Evaluations -->
+          {% if pending_evaluations.has_other_pages %}
+          <nav aria-label="Pending Evaluations Pagination" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+              {% if pending_evaluations.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?evaluations_page={{ pending_evaluations.previous_page_number }}{% if request.GET.approvals_page %}&approvals_page={{ request.GET.approvals_page }}{% endif %}">
+                    Previous
+                  </a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Previous</span>
+                </li>
+              {% endif %}
+              
+              {% for num in pending_evaluations.paginator.page_range %}
+                {% if pending_evaluations.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% elif num > pending_evaluations.number|add:'-3' and num < pending_evaluations.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?evaluations_page={{ num }}{% if request.GET.approvals_page %}&approvals_page={{ request.GET.approvals_page }}{% endif %}">
+                      {{ num }}
+                    </a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              
+              {% if pending_evaluations.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?evaluations_page={{ pending_evaluations.next_page_number }}{% if request.GET.approvals_page %}&approvals_page={{ request.GET.approvals_page }}{% endif %}">
+                    Next
+                  </a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Next</span>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manager Dashboard Charts -->
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card card-accent-primary">
+        <div class="card-header"><strong>Priority Report</strong></div>
+        <div class="card-body"><canvas id="priorityReportChart" style="height:300px; width:100%;"></canvas></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card card-accent-info">
+        <div class="card-header"><strong>Status</strong></div>
+        <div class="card-body"><canvas id="statusPieChart" style="height:300px; width:100%;"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card card-accent-primary">
+        <div class="card-header"><strong>Status Distribution by User</strong></div>
+        <div class="card-body"><canvas id="statusByUserChart" style="height:350px; width:100%;"></canvas></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card card-accent-info">
+        <div class="card-header"><strong>Priority Distribution by User</strong></div>
+        <div class="card-body"><canvas id="priorityByUserChart" style="height:350px; width:100%;"></canvas></div>
+      </div>
+    </div>
+  </div>
+  
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  {{ status_by_user|json_script:"statusByUserData" }}
+  {{ priority_by_user|json_script:"priorityByUserData" }}
+  {{ priority_types|json_script:"priorityTypes" }}
+  {{ priority_report|json_script:"priorityReportCounts" }}
+  <script>
+    const priorityTypes = JSON.parse(document.getElementById('priorityTypes').textContent || '[]');
+    const priorityReportCounts = JSON.parse(document.getElementById('priorityReportCounts').textContent || '{}');
+    const priorityPalette = ['#007bff', '#28a745', '#dc3545', '#17a2b8', '#ffc107', '#6f42c1'];
+
+    // Priority Report (dynamic by configured priority types)
+    const priorityReportData = {
+      labels: priorityTypes,
+      datasets: [{
+        label: 'Priority',
+        data: priorityTypes.map((p) => parseInt((priorityReportCounts[p] ?? 0))),
+        backgroundColor: priorityTypes.map((_, idx) => priorityPalette[idx % priorityPalette.length])
+      }]
+    };
+    new Chart(document.getElementById('priorityReportChart'), {
+      type: 'bar',
+      data: priorityReportData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
+          title: { display: false }
+        },
+        layout: { padding: 20 },
+        scales: {
+          x: { grid: { color: '#eee' }, ticks: { font: { size: 13 } } },
+          y: { grid: { color: '#eee' }, beginAtZero: true, ticks: { font: { size: 13 } } }
+        }
+      }
+    });
+
+    // Status Pie
+    const statusPieData = {
+      labels: ['Total Open', 'Total Close', 'Total Due'],
+      datasets: [{
+        data: [
+          parseInt('{{ status_report.open|default:"0" }}'),
+          parseInt('{{ status_report.closed|default:"0" }}'),
+          parseInt('{{ status_report.due|default:"0" }}')
+        ],
+        backgroundColor: ['#dc3545', '#007bff', '#ffc107']
+      }]
+    };
+    new Chart(document.getElementById('statusPieChart'), {
+      type: 'pie',
+      data: statusPieData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
+          title: { display: false }
+        },
+        layout: { padding: 20 }
+      }
+    });
+
+    // Status Distribution by User
+    const statusByUser = JSON.parse(document.getElementById('statusByUserData').textContent);
+    const statusByUserLabels = Object.keys(statusByUser);
+    const statusByUserOpen = statusByUserLabels.map(u => statusByUser[u].open);
+    const statusByUserClosed = statusByUserLabels.map(u => statusByUser[u].closed);
+    const statusByUserDue = statusByUserLabels.map(u => statusByUser[u].due);
+    new Chart(document.getElementById('statusByUserChart'), {
+      type: 'bar',
+      data: {
+        labels: statusByUserLabels,
+        datasets: [
+          {label: 'Open Status', backgroundColor: '#007bff', data: statusByUserOpen},
+          {label: 'Closed Status', backgroundColor: '#28a745', data: statusByUserClosed},
+          {label: 'Due Status', backgroundColor: '#dc3545', data: statusByUserDue}
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
+          title: { display: false }
+        },
+        layout: { padding: 20 },
+        scales: {
+          x: { stacked: true, grid: { color: '#eee' }, ticks: { font: { size: 13 } } },
+          y: { beginAtZero: true, stacked: true, grid: { color: '#eee' }, ticks: { font: { size: 13 } } }
+        }
+      }
+    });
+
+    // Priority Distribution by User
+    const priorityByUser = JSON.parse(document.getElementById('priorityByUserData').textContent || '{}');
+    const priorityByUserLabels = Object.keys(priorityByUser);
+    const priorityDatasets = priorityTypes.map((priorityName, idx) => ({
+      label: priorityName + ' Priority',
+      backgroundColor: priorityPalette[idx % priorityPalette.length],
+      data: priorityByUserLabels.map((u) => parseInt((priorityByUser[u]?.[priorityName] ?? 0)))
+    }));
+    new Chart(document.getElementById('priorityByUserChart'), {
+      type: 'bar',
+      data: {
+        labels: priorityByUserLabels,
+        datasets: priorityDatasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
+          title: { display: false }
+        },
+        layout: { padding: 20 },
+        scales: {
+          x: { stacked: true, grid: { color: '#eee' }, ticks: { font: { size: 13 } } },
+          y: { beginAtZero: true, stacked: true, grid: { color: '#eee' }, ticks: { font: { size: 13 } } }
+        }
+      }
+    });
+  </script>
+  
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <strong>Quick Actions</strong>
+        </div>
+        <div class="card-body">
+          <div class="btn-group-vertical w-100" role="group">
+            <a href="{% url 'core:new-task' %}" class="btn btn-outline-primary mb-2">
+              <i class="fa fa-plus"></i> Create New Task
+            </a>
+            <a href="{% url 'core:users' %}" class="btn btn-outline-info mb-2">
+              <i class="fa fa-users"></i> View Team Members
+            </a>
+            <a href="{% url 'core:projects' %}" class="btn btn-outline-info mb-2">
+              <i class="fa fa-tasks"></i> View Tasks
+            </a>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <strong>Pending Approvals</strong>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for task in pending_approvals %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>{{ task.issue_action|truncatechars:30 }}</strong><br>
+                    <small class="text-muted">{{ task.responsible.get_full_name }}</small>
+                  </div>
+                  <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                    Review
+                  </a>
+                </div>
+              </div>
+            {% empty %}
+              <div class="text-center text-muted">
+                <p>No pending approvals</p>
+              </div>
+            {% endfor %}
+          </div>
+          
+          <!-- Pagination for Pending Approvals -->
+          {% if pending_approvals.has_other_pages %}
+          <nav aria-label="Pending Approvals Pagination" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+              {% if pending_approvals.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?approvals_page={{ pending_approvals.previous_page_number }}{% if request.GET.evaluations_page %}&evaluations_page={{ request.GET.evaluations_page }}{% endif %}">
+                    Previous
+                  </a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Previous</span>
+                </li>
+              {% endif %}
+              
+              {% for num in pending_approvals.paginator.page_range %}
+                {% if pending_approvals.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% elif num > pending_approvals.number|add:'-3' and num < pending_approvals.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?approvals_page={{ num }}{% if request.GET.evaluations_page %}&evaluations_page={{ request.GET.evaluations_page }}{% endif %}">
+                      {{ num }}
+                    </a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              
+              {% if pending_approvals.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?approvals_page={{ pending_approvals.next_page_number }}{% if request.GET.evaluations_page %}&evaluations_page={{ request.GET.evaluations_page }}{% endif %}">
+                    Next
+                  </a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Next</span>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  {% else %}
+  <!-- Employee specific features -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <strong>My Work Overview</strong>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-primary">{{ my_tasks.count }}</h4>
+                <p class="text-muted">My Tasks</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-success">{{ closed_tasks|default:0 }}</h4>
+                <p class="text-muted">Completed</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-warning">{{ open_tasks|default:0 }}</h4>
+                <p class="text-muted">In Progress</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-center">
+                <h4 class="text-danger">{{ due_tasks|default:0 }}</h4>
+                <p class="text-muted">Due Soon</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <strong>Quick Actions</strong>
+        </div>
+        <div class="card-body">
+          <div class="btn-group-vertical w-100" role="group">
+            <a href="{% url 'core:new-task' %}" class="btn btn-outline-primary mb-2">
+              <i class="fa fa-plus"></i> Create New Task
+            </a>
+            <a href="{% url 'core:projects' %}" class="btn btn-outline-info mb-2">
+              <i class="fa fa-tasks"></i> View My Tasks
+            </a>
+            <a href="{% url 'core:profile' %}" class="btn btn-outline-success mb-2">
+              <i class="fa fa-user"></i> Update Profile
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <strong>Recent Tasks</strong>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            {% for task in recent_tasks %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ task.issue_action|truncatechars:30 }}</strong><br>
+                  <small class="text-muted">
+                    {% if task.close_date %}
+                      Due: {{ task.close_date|date:"M d, Y" }}
+                    {% else %}
+                      No due date set
+                    {% endif %}
+                  </small>
+                </div>
+                <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">
+                  {{ task.get_status_display }}
+                </span>
+              </div>
+            </div>
+            {% empty %}
+              <div class="text-center text-muted">
+                <p>No tasks assigned</p>
+              </div>
+            {% endfor %}
+          </div>
+          
+          <!-- Pagination for Recent Tasks -->
+          {% if recent_tasks.has_other_pages %}
+          <nav aria-label="Recent Tasks Pagination" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+              {% if recent_tasks.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?recent_tasks_page={{ recent_tasks.previous_page_number }}">
+                    Previous
+                  </a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Previous</span>
+                </li>
+              {% endif %}
+              
+              {% for num in recent_tasks.paginator.page_range %}
+                {% if recent_tasks.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% elif num > recent_tasks.number|add:'-3' and num < recent_tasks.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?recent_tasks_page={{ num }}">
+                      {{ num }}
+                    </a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              
+              {% if recent_tasks.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?recent_tasks_page={{ recent_tasks.next_page_number }}">
+                    Next
+                  </a>
+                </li>
+              {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link">Next</span>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+</div>
+
+{% endblock %}

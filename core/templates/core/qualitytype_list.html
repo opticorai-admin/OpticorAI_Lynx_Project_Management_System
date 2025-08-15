@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item">Settings</li>
+        <li class="breadcrumb-item active">Manage Quality Types</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-md-flex justify-content-between align-items-center">
+          <div>
+            <h4><i class="fa fa-star"></i> Manage Quality Types</h4>
+            <p class="text-muted">Create, edit, and delete Quality Assessment Types with percentages (Admin Only)</p>
+          </div>
+          <a href="{% url 'core:qualitytype-create' %}" class="btn btn-primary">
+            <i class="fa fa-plus"></i> Add New Quality Type
+          </a>
+        </div>
+        <div class="card-body">
+          <!-- Search Bar -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <form method="get" class="form-inline">
+                <div class="input-group">
+                  <input type="text" name="search" class="form-control" placeholder="Search Quality Types..." value="{{ search_query }}">
+                  <div class="input-group-append">
+                    <button type="submit" class="btn btn-outline-secondary">
+                      <i class="fa fa-search"></i>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- QualityType List -->
+          {% if quality_types %}
+            <div class="table-responsive table-responsive-sm">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th class="text-nowrap" style="min-width:120px;">Name</th>
+                    <th class="text-nowrap d-none d-sm-table-cell" style="min-width:100px;">Percentage</th>
+                    <th class="text-nowrap d-none d-sm-table-cell" style="min-width:120px;">Created By</th>
+                    <th class="text-nowrap d-none d-md-table-cell" style="min-width:130px;">Created Date</th>
+                    <th class="text-nowrap" style="min-width:110px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for quality_type in quality_types %}
+                    <tr>
+                      <td class="text-nowrap" style="min-width:120px;">
+                        <strong>{{ quality_type.name }}</strong>
+                      </td>
+                      <td class="text-nowrap d-none d-sm-table-cell" style="min-width:100px;">
+                        <span class="badge badge-info">{{ quality_type.percentage }}%</span>
+                      </td>
+                      <td class="text-nowrap d-none d-sm-table-cell" style="min-width:120px;">
+                        {% if quality_type.created_by %}
+                          {{ quality_type.created_by.get_full_name }}
+                        {% else %}
+                          <span class="text-muted">System</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-nowrap d-none d-md-table-cell" style="min-width:130px;">{{ quality_type.created_at|date:"M d, Y H:i" }}</td>
+                      <td class="text-nowrap" style="min-width:110px;">
+                        <div class="btn-group btn-group-sm">
+                          <a href="{% url 'core:qualitytype-edit' quality_type.pk %}" class="btn btn-outline-primary" title="Edit">
+                            <i class="fa fa-edit"></i>
+                          </a>
+                          <a href="{% url 'core:qualitytype-delete' quality_type.pk %}" class="btn btn-outline-danger" title="Delete">
+                            <i class="fa fa-trash"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+              <nav aria-label="QualityType pagination">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                    </li>
+                  {% endif %}
+
+                  <li class="page-item active">
+                    <span class="page-link">
+                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                  </li>
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fa fa-star fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No Quality Types found</h5>
+              {% if search_query %}
+                <p class="text-muted">No Quality Types match your search criteria.</p>
+                <a href="{% url 'core:qualitytype-list' %}" class="btn btn-outline-secondary">Clear Search</a>
+              {% else %}
+                <p class="text-muted">Get started by creating your first Quality Type.</p>
+                <a href="{% url 'core:qualitytype-create' %}" class="btn btn-primary">Create First Quality Type</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} 

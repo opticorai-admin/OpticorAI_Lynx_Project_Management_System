@@ -1,0 +1,267 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item">Settings</li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'core:employee-progress-list' %}">Employee Progress</a>
+    </li>
+    <li class="breadcrumb-item active">{{ employee.get_full_name }}</li>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-md-flex justify-content-between align-items-center">
+          <div>
+            <h4>
+              <i class="fa fa-user"></i> 
+              {{ employee.get_full_name }} - Progress Details
+            </h4>
+            <p class="text-muted">Detailed progress breakdown by KPI performance</p>
+          </div>
+          <div class="mt-2 mt-md-0">
+            <a href="{% url 'core:employee-progress-list' %}" class="btn btn-outline-secondary">
+              <i class="fa fa-arrow-left"></i> Back to List
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          
+          <!-- Period Selection -->
+          <form method="get" class="row g-2 align-items-end mb-4">
+            <div class="col-md-4">
+              <label for="period_start">Start Date:</label>
+              <input type="date" name="period_start" id="period_start" class="form-control" value="{{ period_start|default:'' }}">
+            </div>
+            <div class="col-md-4">
+              <label for="period_end">End Date:</label>
+              <input type="date" name="period_end" id="period_end" class="form-control" value="{{ period_end|default:'' }}">
+            </div>
+            <div class="col-md-4">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="fa fa-search"></i> Update Period
+              </button>
+            </div>
+          </form>
+
+          <!-- Progress Summary -->
+          {% if progress_record %}
+            <div class="row mb-4">
+              <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                  <div class="card-body text-center">
+                    <h3 class="mb-0">{{ progress_record.total_progress_score }}%</h3>
+                    <p class="mb-0">Total Progress Score</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card bg-info text-white">
+                  <div class="card-body text-center">
+                    <h3 class="mb-0">{{ progress_record.period_start|date:"M d" }} - {{ progress_record.period_end|date:"M d" }}</h3>
+                    <p class="mb-0">Evaluation Period</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card bg-success text-white">
+                  <div class="card-body text-center">
+                    <h3 class="mb-0">{{ progress_record.calculation_date|date:"M d, H:i" }}</h3>
+                    <p class="mb-0">Last Calculated</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI Performance Breakdown -->
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fa fa-chart-pie"></i> KPI Performance Breakdown
+                </h5>
+              </div>
+              <div class="card-body">
+                {% if progress_record.progress_breakdown %}
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>KPI Name</th>
+                          <th>Weight</th>
+                          <th>Tasks</th>
+                          <th>Average Score</th>
+                          <th>Weighted Score</th>
+                          <th>Performance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for kpi_name, kpi_data in progress_record.progress_breakdown.items %}
+                          <tr>
+                            <td>
+                              <strong>{{ kpi_name }}</strong>
+                            </td>
+                            <td>
+                              <span class="badge badge-info">{{ kpi_data.weight }}%</span>
+                            </td>
+                            <td>
+                              <span class="badge badge-secondary">{{ kpi_data.task_count }}</span>
+                            </td>
+                            <td>
+                              <span class="badge badge-{% if kpi_data.average_score >= 80 %}success{% elif kpi_data.average_score >= 60 %}warning{% else %}danger{% endif %}">
+                                {{ kpi_data.average_score }}%
+                              </span>
+                            </td>
+                            <td>
+                              <span class="badge badge-primary">{{ kpi_data.weighted_score }}%</span>
+                            </td>
+                            <td>
+                              <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-{% if kpi_data.average_score >= 80 %}success{% elif kpi_data.average_score >= 60 %}warning{% else %}danger{% endif %}"
+                                     role="progressbar"
+                                     style="width: 0%"
+                                     data-progress="{{ kpi_data.average_score|default_if_none:0|floatformat:0 }}"
+                                     aria-valuenow="{{ kpi_data.average_score|default_if_none:0|floatformat:0 }}"
+                                     aria-valuemin="0" aria-valuemax="100">
+                                  {{ kpi_data.average_score }}%
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Task Details by KPI -->
+                  <div class="mt-4">
+                    <h6>Task Details by KPI</h6>
+                    {% for kpi_name, kpi_data in progress_record.progress_breakdown.items %}
+                      {% if kpi_data.tasks %}
+                        <div class="card mb-3">
+                          <div class="card-header">
+                            <h6 class="mb-0">{{ kpi_name }} - {{ kpi_data.task_count }} Tasks</h6>
+                          </div>
+                          <div class="card-body">
+                            <div class="table-responsive">
+                              <table class="table table-sm">
+                                <thead>
+                                  <tr>
+                                    <th>Task</th>
+                                    <th>Completion Date</th>
+                                    <th>Final Score</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {% for task in kpi_data.tasks %}
+                                    <tr>
+                                      <td>{{ task.issue_action|truncatechars:50 }}</td>
+                                      <td>{{ task.completion_date|date:"M d, Y" }}</td>
+                                      <td>
+                                        <span class="badge badge-{% if task.final_score >= 80 %}success{% elif task.final_score >= 60 %}warning{% else %}danger{% endif %}">
+                                          {{ task.final_score }}%
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  {% endfor %}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> No KPI breakdown data available.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Recalculate Button -->
+            <div class="mt-4">
+              <form method="post" action="{% url 'core:recalculate-progress' employee.id %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="period_start" value="{{ period_start }}">
+                <input type="hidden" name="period_end" value="{{ period_end }}">
+                <button type="submit" class="btn btn-warning" {% if not period_start or not period_end %}disabled{% endif %}>
+                  <i class="fa fa-refresh"></i> Recalculate Progress
+                </button>
+              </form>
+            </div>
+
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fa fa-info-circle"></i> No progress data available for the selected period. 
+              Make sure the employee has completed tasks with evaluations in this timeframe.
+            </div>
+          {% endif %}
+
+          <!-- Historical Progress -->
+          {% if historical_records %}
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fa fa-history"></i> Historical Progress Records
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        <th>Period</th>
+                        <th>Total Score</th>
+                        <th>Calculated</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for record in historical_records %}
+                        <tr>
+                          <td>{{ record.period_start|date:"M d, Y" }} - {{ record.period_end|date:"M d, Y" }}</td>
+                          <td>
+                            <span class="badge badge-{% if record.total_progress_score >= 80 %}success{% elif record.total_progress_score >= 60 %}warning{% else %}danger{% endif %}">
+                              {{ record.total_progress_score }}%
+                            </span>
+                          </td>
+                          <td>{{ record.calculation_date|date:"M d, Y H:i" }}</td>
+                          <td>
+                            <a href="?period_start={{ record.period_start|date:'Y-m-d' }}&period_end={{ record.period_end|date:'Y-m-d' }}" 
+                               class="btn btn-outline-primary btn-sm">
+                              <i class="fa fa-eye"></i> View
+                            </a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          
+          <script>
+            // Local fallback: ensure Performance bars display widths from data attribute
+            (function(){
+              try {
+                var bars = document.querySelectorAll('.progress .progress-bar[data-progress]');
+                bars.forEach(function(bar){
+                  var v = parseFloat(bar.getAttribute('data-progress')) || 0;
+                  if (v < 0) v = 0; if (v > 100) v = 100;
+                  bar.style.width = v + '%';
+                });
+              } catch (e) { /* no-op */ }
+            })();
+          </script>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

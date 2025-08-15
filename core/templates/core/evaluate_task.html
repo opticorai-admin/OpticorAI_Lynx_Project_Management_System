@@ -1,0 +1,197 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load evaluation_filters %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">
+                        {% if is_manager_closure %}
+                            <i class="fa fa-exclamation-triangle text-warning"></i> {{ title }}
+                        {% else %}
+                            {{ title }}
+                        {% endif %}
+                    </h4>
+                    <div class="card-header-actions">
+                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Task
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Task Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <h5>{{ task.issue_action }}</h5>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Responsible:</strong></td>
+                                            <td>{{ task.responsible.get_full_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Priority:</strong></td>
+                                            <td>
+                                                <span class="badge badge-{% if task.priority.code == 'high' %}danger{% elif task.priority.code == 'medium' %}warning{% else %}info{% endif %}">
+                                                    {{ task.priority.name }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>KPI:</strong></td>
+                                            <td>{% if task.kpi %}{{ task.kpi.name }}{% else %}-{% endif %}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Status:</strong></td>
+                                            <td>
+                                                <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Start Date:</strong></td>
+                                            <td>{{ task.start_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Target Date:</strong></td>
+                                            <td>{{ task.target_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Completion:</strong></td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         aria-valuenow="{{ task.percentage_completion }}" 
+                                                         aria-valuemin="0" aria-valuemax="100">
+                                                        {{ task.percentage_completion }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manager Closure Warning -->
+                    {% if is_manager_closure %}
+                    <div class="alert alert-warning">
+                        <h6><i class="fa fa-exclamation-triangle"></i> Manager Closure Notice</h6>
+                        <p class="mb-0">
+                            You are closing an incomplete task. This will automatically apply a <strong>-20% penalty</strong> 
+                            to the final score. The employee will receive partial credit based on the quality rating you provide.
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Evaluation Form -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.quality.id_for_label }}">{{ form.quality.label }}</label>
+                                    <select name="{{ form.quality.name }}" id="quality-select" class="form-control" 
+                                            data-priority-name="{{ task.priority.name|default:'' }}" 
+                                            data-priority-multiplier="{{ task.priority.multiplier|default:1.0 }}" 
+                                            data-priority-code="{{ task.priority.code|default:'' }}" 
+                                            data-target-date="{{ task.target_date|date:'Y-m-d' }}">
+                                        {% for choice in form.quality.field.choices %}
+                                            <option value="{{ choice.0 }}" {% if choice.0 == form.quality.value %}selected{% endif %}>
+                                                {{ choice.1 }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.quality.help_text %}
+                                        <small class="form-text text-muted">{{ form.quality.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.quality.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.quality.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.close_date.id_for_label }}">{{ form.close_date.label }}</label>
+                                    <input type="date" name="{{ form.close_date.name }}" id="close-date-input" class="form-control" 
+                                           value="{{ form.close_date.value|date:'Y-m-d' }}" required>
+                                    {% if form.close_date.help_text %}
+                                        <small class="form-text text-muted">{{ form.close_date.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.close_date.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.close_date.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.approval_status.id_for_label }}">{{ form.approval_status.label }}</label>
+                                    {{ form.approval_status }}
+                                    {% if form.approval_status.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.approval_status.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.evaluation_comments.id_for_label }}">{{ form.evaluation_comments.label }}</label>
+                            {{ form.evaluation_comments }}
+                            {% if form.evaluation_comments.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.evaluation_comments.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Evaluation Preview -->
+                        <div class="mt-4" id="evaluation-preview" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fa fa-eye"></i> Evaluation Preview</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="preview-content">
+                                        <!-- Preview content will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-{% if is_manager_closure %}warning{% else %}primary{% endif %}">
+                                <i class="fa fa-{% if is_manager_closure %}times-circle{% else %}check{% endif %}"></i> 
+                                {% if is_manager_closure %}Close Incomplete Task{% else %}Evaluate Task{% endif %}
+                            </button>
+                            <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'core/js/evaluation-preview.js' %}"></script>
+{% endblock %} 

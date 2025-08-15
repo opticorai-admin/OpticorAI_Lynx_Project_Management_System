@@ -1,0 +1,191 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">
+                        <i class="fa fa-calculator"></i> Task Evaluation Settings
+                    </h4>
+                    <p class="text-muted">Configure automatic task evaluation formula and parameters (Admin Only)</p>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}" role="alert">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Formula Configuration -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fa fa-cog"></i> Formula Configuration</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="{{ form.formula_name.id_for_label }}">{{ form.formula_name.label }}</label>
+                                    {{ form.formula_name }}
+                                    {% if form.formula_name.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.formula_name.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <div class="custom-control custom-checkbox">
+                                                {{ form.use_quality_score }}
+                                                <label class="custom-control-label" for="{{ form.use_quality_score.id_for_label }}">
+                                                    {{ form.use_quality_score.label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <div class="custom-control custom-checkbox">
+                                                {{ form.use_priority_multiplier }}
+                                                <label class="custom-control-label" for="{{ form.use_priority_multiplier.id_for_label }}">
+                                                    {{ form.use_priority_multiplier.label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <div class="custom-control custom-checkbox">
+                                                {{ form.use_time_bonus_penalty }}
+                                                <label class="custom-control-label" for="{{ form.use_time_bonus_penalty.id_for_label }}">
+                                                    {{ form.use_time_bonus_penalty.label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <div class="custom-control custom-checkbox">
+                                                {{ form.use_manager_closure_penalty }}
+                                                <label class="custom-control-label" for="{{ form.use_manager_closure_penalty.id_for_label }}">
+                                                    {{ form.use_manager_closure_penalty.label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Time Bonus/Penalty Settings -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fa fa-clock"></i> Time Bonus/Penalty Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.early_completion_bonus_per_day.id_for_label }}">{{ form.early_completion_bonus_per_day.label }}</label>
+                                            {{ form.early_completion_bonus_per_day }}
+                                            {% if form.early_completion_bonus_per_day.errors %}
+                                                <div class="alert alert-danger mt-2">
+                                                    {{ form.early_completion_bonus_per_day.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.max_early_completion_bonus.id_for_label }}">{{ form.max_early_completion_bonus.label }}</label>
+                                            {{ form.max_early_completion_bonus }}
+                                            {% if form.max_early_completion_bonus.errors %}
+                                                <div class="alert alert-danger mt-2">
+                                                    {{ form.max_early_completion_bonus.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.late_completion_penalty_per_day.id_for_label }}">{{ form.late_completion_penalty_per_day.label }}</label>
+                                            {{ form.late_completion_penalty_per_day }}
+                                            {% if form.late_completion_penalty_per_day.errors %}
+                                                <div class="alert alert-danger mt-2">
+                                                    {{ form.late_completion_penalty_per_day.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.max_late_completion_penalty.id_for_label }}">{{ form.max_late_completion_penalty.label }}</label>
+                                            {{ form.max_late_completion_penalty }}
+                                            {% if form.max_late_completion_penalty.errors %}
+                                                <div class="alert alert-danger mt-2">
+                                                    {{ form.max_late_completion_penalty.errors }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.manager_closure_penalty.id_for_label }}">{{ form.manager_closure_penalty.label }}</label>
+                                    {{ form.manager_closure_penalty }}
+                                    {% if form.manager_closure_penalty.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.manager_closure_penalty.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formula Description -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fa fa-info-circle"></i> Formula Description</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="{{ form.evaluation_formula.id_for_label }}">{{ form.evaluation_formula.label }}</label>
+                                    {{ form.evaluation_formula }}
+                                    {% if form.evaluation_formula.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.evaluation_formula.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-save"></i> Save Evaluation Settings
+                            </button>
+                            <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

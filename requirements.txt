@@ -1,0 +1,10 @@
+dj-database-url
+Django>=5.1,<6.0
+django-appconf
+django-multiselectfield
+whitenoise>=6.7
+openpyxl
+reportlab
+Pillow
+psycopg2-binary
+wfastcgi

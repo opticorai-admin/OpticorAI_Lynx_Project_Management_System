@@ -1,0 +1,177 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load evaluation_filters %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">
+                        <i class="fa fa-calculator"></i> Task Evaluation System Demo
+                    </h4>
+                    <p class="text-muted">How the automatic task evaluation system works</p>
+                </div>
+                <div class="card-body">
+                    <!-- Example Calculation -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5><i class="fa fa-star"></i> Example Calculation</h5>
+                            <div class="alert alert-info">
+                                <strong>Scenario:</strong> A task with Good quality, High priority, finished 2 days early
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Step</th>
+                                            <th>Calculation</th>
+                                            <th>Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>1. Quality Score</strong></td>
+                                            <td>{{ example.quality_name }} ({{ example.quality_percentage }}%)</td>
+                                            <td><span class="badge badge-primary">{{ example.quality_percentage }}%</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>2. Priority Multiplier</strong></td>
+                                            <td>{{ example.priority_name }} → +{{ example.priority_multiplier|add:"-1"|multiply:100|floatformat:0 }}% → {{ example.quality_percentage }} × {{ example.priority_multiplier|floatformat:2 }}</td>
+                                            <td><span class="badge badge-warning">{{ example.base_score|floatformat:1 }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>3. Time Bonus</strong></td>
+                                            <td>Finished {{ example.days_early }} day{{ example.days_early|pluralize }} early → +{{ example.time_bonus }}%</td>
+                                            <td><span class="badge badge-success">+{{ example.time_bonus }}%</span></td>
+                                        </tr>
+                                        <tr class="table-active">
+                                            <td><strong>4. Final Score</strong></td>
+                                            <td>{{ example.base_score|floatformat:1 }} + {{ example.time_bonus }} = {{ example.final_score|floatformat:1 }}</td>
+                                            <td><span class="badge badge-success badge-lg">{{ example.final_score|floatformat:1 }}%</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h6><i class="fa fa-info-circle"></i> How It Works</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Quality Score</h6>
+                                                <p class="card-text">Base score from quality rating (Poor: 40%, Below Average: 60%, Good: 80%, Excellent: 95%)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Priority Multiplier</h6>
+                                                <p class="card-text">High priority tasks get a 20% bonus multiplier (1.2x), Medium gets 10% (1.1x), Low gets no bonus (1.0x)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Time Bonus/Penalty</h6>
+                                                <p class="card-text">Early completion: +1% per day (max 10%). Late completion: -2% per day (max -20%)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Manager Closure Penalty</h6>
+                                                <p class="card-text">If manager closes incomplete task: -20% penalty</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fa fa-cog"></i> Current Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Formula:</strong></td>
+                                            <td>{{ settings.formula_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Early Bonus:</strong></td>
+                                            <td>{{ settings.early_completion_bonus_per_day }}% per day</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Max Early Bonus:</strong></td>
+                                            <td>{{ settings.max_early_completion_bonus }}%</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Late Penalty:</strong></td>
+                                            <td>{{ settings.late_completion_penalty_per_day }}% per day</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Max Late Penalty:</strong></td>
+                                            <td>{{ settings.max_late_completion_penalty }}%</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Manager Penalty:</strong></td>
+                                            <td>{{ settings.manager_closure_penalty }}%</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6><i class="fa fa-list"></i> Available Quality Types</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><span class="badge badge-danger">Poor</span> - 40%</li>
+                                        <li><span class="badge badge-warning">Below Average</span> - 60%</li>
+                                        <li><span class="badge badge-primary">Good</span> - 80%</li>
+                                        <li><span class="badge badge-success">Excellent</span> - 95%</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6><i class="fa fa-flag"></i> Priority Types</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        <li><span class="badge badge-info">Low</span> - 1.0x (no bonus)</li>
+                                        <li><span class="badge badge-warning">Medium</span> - 1.1x (+10%)</li>
+                                        <li><span class="badge badge-danger">High</span> - 1.2x (+20%)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">
+                            <i class="fa fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        <a href="{% url 'core:projects' %}" class="btn btn-primary">
+                            <i class="fa fa-tasks"></i> View Tasks
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

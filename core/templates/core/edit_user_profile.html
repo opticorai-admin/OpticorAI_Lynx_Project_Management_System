@@ -1,0 +1,186 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item">Users</li>
+        <li class="breadcrumb-item active">Edit User Profile</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+<div class="container-fluid">
+  <div id="ui-view" style="opacity: 1;"><div class="animated fadeIn">
+        <div class="row">
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-12 col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>{{ target_user.get_full_name }} - Current Profile</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="message">
+                                    <div class="py-3 pb-5 mr-3 float-left">
+                                        <div class="avatar">
+                                            <img src="{{ target_user.avatar_url }}" class="img-avatar" alt="{{ target_user.get_full_name }}">
+                                            <span class="avatar-status badge-success"></span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted">{{ target_user.get_full_name }}</small>
+                                        {% if target_user.last_login %}
+                                        <small class="text-muted float-right mt-1">Last login: {{ target_user.last_login|date:"H:i" }} in {{ target_user.last_login|date:"d/m" }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-2">
+                                        <strong>User Type:</strong> {{ target_user.get_user_type_display }}<br>
+                                        <strong>Designation:</strong> {{ target_user.designation }}<br>
+                                        <strong>Supervisor:</strong> {{ target_user.under_supervision.username|default:'-' }}<br>
+                                        <strong>Email:</strong> {{ target_user.email }}<br>
+                                        <strong>Date Joined:</strong> {{ target_user.date_joined|date:"F d, Y" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>Edit Profile Information</strong>
+                                <!-- {% if user.user_type in 'manager,employee' %}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fa fa-info-circle"></i> 
+                                    You can only edit First Name, Last Name, and Profile Picture.
+                                </small>
+                                {% elif user.user_type == 'admin' %}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fa fa-info-circle"></i> 
+                                    You can edit all profile fields including User Type and Supervisor.
+                                </small>
+                                {% endif %} -->
+                            </div>
+                            <div class="card-body">
+                                <form method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label for="{{ form.first_name.id_for_label }}">First Name:</label>
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.first_name.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="{{ form.last_name.id_for_label }}">Last Name:</label>
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.last_name.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% if form.email %}
+                                    <div class="form-group">
+                                        <label for="{{ form.email.id_for_label }}">Email:</label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.email.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% if form.designation %}
+                                    <div class="form-group">
+                                        <label for="{{ form.designation.id_for_label }}">Designation:</label>
+                                        {{ form.designation }}
+                                        {% if form.designation.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.designation.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% if form.user_type %}
+                                    <div class="form-group">
+                                        <label for="{{ form.user_type.id_for_label }}">User Type:</label>
+                                        {{ form.user_type }}
+                                        {% if form.user_type.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.user_type.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% if form.under_supervision %}
+                                    <div class="form-group">
+                                        <label for="{{ form.under_supervision.id_for_label }}">Supervisor:</label>
+                                        {{ form.under_supervision }}
+                                        {% if form.under_supervision.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.under_supervision.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-group">
+                                        <label for="{{ form.avatar.id_for_label }}">Profile Picture:</label>
+                                        {{ form.avatar }}
+                                        {% if form.avatar.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.avatar.errors }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                                        <a href="{% url 'core:users' %}" class="btn btn-secondary">Cancel</a>
+                                        {% if user.user_type == 'admin' and target_user != user %}
+                                        <a href="{% url 'core:admin-set-password' target_user.id %}" class="btn btn-warning">Change Password</a>
+                                        {% endif %}
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal for Profile Update -->
+<div class="modal fade" id="profileUpdatedModal" tabindex="-1" role="dialog" aria-labelledby="profileUpdatedModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="profileUpdatedModalLabel">Profile Updated!</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-check-circle fa-3x text-success mb-3"></i>
+        <p class="lead mb-0">The user profile was updated successfully!</p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <a href="{% url 'core:users' %}" class="btn btn-success">Go to User List</a>
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if profile_updated %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    $('#profileUpdatedModal').modal('show');
+  });
+</script>
+{% endif %}
+
+{% endblock %} 

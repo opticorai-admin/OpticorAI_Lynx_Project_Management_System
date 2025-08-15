@@ -1,0 +1,196 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load task_permissions %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Edit Task</h4>
+                    <div class="card-header-actions">
+                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Task
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if updated %}
+                        <!-- Success Modal for Task Update -->
+                        <div class="modal fade" id="taskUpdatedModal" tabindex="-1" role="dialog" aria-labelledby="taskUpdatedModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                              <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title" id="taskUpdatedModalLabel">Task Updated!</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                  <span aria-hidden="true">&times;</span>
+                                </button>
+                              </div>
+                              <div class="modal-body text-center">
+                                <i class="fa fa-check-circle fa-3x text-success mb-3"></i>
+                                <p class="lead mb-0">The task was updated successfully!</p>
+                              </div>
+                              <div class="modal-footer justify-content-center">
+                                <a href="{% url 'core:task-detail' task.id %}" class="btn btn-success">Back to Task</a>
+                                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <script>
+                          document.addEventListener('DOMContentLoaded', function() {
+                            $('#taskUpdatedModal').modal('show');
+                          });
+                        </script>
+                    {% endif %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}" role="alert">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.issue_action.id_for_label }}">{{ form.issue_action.label }}</label>
+                                    {{ form.issue_action }}
+                                    {% if form.issue_action.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.issue_action.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.responsible.id_for_label }}">{{ form.responsible.label }}</label>
+                                    {{ form.responsible }}
+                                    {% if form.responsible.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.responsible.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+                                    {{ form.priority }}
+                                    {% if form.priority.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.priority.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.kpi.id_for_label }}">{{ form.kpi.label }}</label>
+                                    {{ form.kpi }}
+                                    {% if form.kpi.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.kpi.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.quality.id_for_label }}">{{ form.quality.label }}</label>
+                                    {{ form.quality }}
+                                    {% if form.quality.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.quality.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
+                                    {{ form.start_date }}
+                                    {% if form.start_date.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.start_date.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.target_date.id_for_label }}">{{ form.target_date.label }}</label>
+                                    {{ form.target_date }}
+                                    {% if form.target_date.help_text %}
+                                        <small class="form-text text-muted">{{ form.target_date.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.target_date.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.target_date.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.percentage_completion.id_for_label }}">{{ form.percentage_completion.label }}</label>
+                                    {{ form.percentage_completion }}
+                                    {% if form.percentage_completion.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.percentage_completion.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.approval_status.id_for_label }}">{{ form.approval_status.label }}</label>
+                                    {{ form.approval_status }}
+                                    {% if form.approval_status.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.approval_status.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.file_upload.id_for_label }}">{{ form.file_upload.label }}</label>
+                                    {{ form.file_upload }}
+                                    {% if task.file_upload %}
+                                        <small class="form-text text-muted">
+                                            Current file: {{ task.file_upload.name }}
+                                        </small>
+                                    {% endif %}
+                                    {% if form.file_upload.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ form.file_upload.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.comments.id_for_label }}">{{ form.comments.label }}</label>
+                            {{ form.comments }}
+                            {% if form.comments.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.comments.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-save"></i> Update Task
+                            </button>
+                            <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

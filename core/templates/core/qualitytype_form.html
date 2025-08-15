@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item">Settings</li>
+        <li class="breadcrumb-item">Manage Quality Types</li>
+        <li class="breadcrumb-item active">{% if object %}Edit Quality Type{% else %}Create Quality Type{% endif %}</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h4>
+            <i class="fa fa-star"></i>
+            {% if object %}Edit Quality Type{% else %}Create New Quality Type{% endif %}
+          </h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+              <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="alert alert-danger mt-2">
+                  {{ form.name.errors }}
+                </div>
+              {% endif %}
+              {% if form.name.help_text %}
+                <small class="form-text text-muted">{{ form.name.help_text }}</small>
+              {% endif %}
+            </div>
+
+            <div class="form-group">
+              <label for="{{ form.percentage.id_for_label }}">{{ form.percentage.label }}</label>
+              {{ form.percentage }}
+              {% if form.percentage.errors %}
+                <div class="alert alert-danger mt-2">
+                  {{ form.percentage.errors }}
+                </div>
+              {% endif %}
+              {% if form.percentage.help_text %}
+                <small class="form-text text-muted">{{ form.percentage.help_text }}</small>
+              {% endif %}
+            </div>
+
+            <div class="form-group mt-4">
+              <div class="btn-group" role="group">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fa fa-save"></i>
+                  {% if object %}Update Quality Type{% else %}Create Quality Type{% endif %}
+                </button>
+                <a href="{% url 'core:qualitytype-list' %}" class="btn btn-secondary">
+                  <i class="fa fa-times"></i> Cancel
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} 

@@ -1,0 +1,339 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load task_permissions %}
+{% load evaluation_filters %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Task Details</h4>
+                    <div class="card-header-actions">
+                        <div class="btn-group" role="group">
+                            {% if task|can_user_edit:user %}
+                                <a href="{% url 'core:edit-task' task.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fa fa-edit"></i> Edit Task
+                                </a>
+                                <a href="{% url 'core:delete-task' task.id %}" class="btn btn-danger btn-sm">
+                                    <i class="fa fa-trash"></i> Delete Task
+                                </a>
+                            {% endif %}
+                            {% if task.file_upload and task|can_user_download_file:user %}
+                                <a href="{% url 'core:download-file' task.id %}" class="btn btn-info btn-sm">
+                                    <i class="fa fa-download"></i> Download File
+                                </a>
+                            {% endif %}
+                            {% if task|can_user_evaluate:user and task.evaluation_status == 'pending' %}
+                                <a href="{% url 'core:evaluate-task' task.id %}" class="btn btn-success btn-sm">
+                                    <i class="fa fa-star"></i> Evaluate Task
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'core:projects' %}" class="btn btn-secondary btn-sm">
+                                <i class="fa fa-arrow-left"></i> Back to Tasks
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5>{{ task.issue_action }}</h5>
+                            
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Responsible:</strong></td>
+                                            <td>{{ task.responsible.get_full_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Created By:</strong></td>
+                                            <td>{{ task.created_by.get_full_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Priority:</strong></td>
+                                            <td>
+                                                {% if task.priority %}
+                                                    <span class="badge badge-{% if task.priority.code == 'high' %}danger{% elif task.priority.code == 'medium' %}warning{% else %}info{% endif %}">
+                                                        {{ task.priority.name }}
+                                                    </span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>KPI:</strong></td>
+                                            <td>{% if task.kpi %}{{ task.kpi.name }}{% else %}-{% endif %}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Status:</strong></td>
+                                            <td>
+                                                <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Approval Status:</strong></td>
+                                            <td>
+                                                <span class="badge badge-{% if task.approval_status == 'approved' %}success{% elif task.approval_status == 'disapproved' %}danger{% else %}warning{% endif %}">
+                                                    {{ task.get_approval_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Start Date:</strong></td>
+                                            <td>{{ task.start_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Target Date:</strong></td>
+                                            <td>{{ task.target_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Close Date:</strong></td>
+                                            <td>{% if task.close_date %}{{ task.close_date }}{% else %}-{% endif %}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Completion:</strong></td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         aria-valuenow="{{ task.percentage_completion }}" 
+                                                         aria-valuemin="0" aria-valuemax="100">
+                                                        {{ task.percentage_completion }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Quality:</strong></td>
+                                            <td>
+                                                {% if task.quality %}
+                                                    {{ task.quality.name }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Created:</strong></td>
+                                            <td>{{ task.created_date|date:"M d, Y H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Updated:</strong></td>
+                                            <td>{{ task.updated_date|date:"M d, Y H:i" }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            {% if task.comments %}
+                            <div class="mt-4">
+                                <h6>Comments:</h6>
+                                <div class="alert alert-info">
+                                    {{ task.comments|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if task|can_user_evaluate:user and task.approval_status == 'pending' %}
+                            <div class="mt-4">
+                                <h6>Task Approval:</h6>
+                                <div class="btn-group" role="group">
+                                    <form method="post" action="{% url 'core:approve-task' task.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" name="action" value="approve" class="btn btn-success">
+                                            <i class="fa fa-check"></i> Approve Task
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'core:approve-task' task.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" name="action" value="disapprove" class="btn btn-danger">
+                                            <i class="fa fa-times"></i> Disapprove Task
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if task|can_user_evaluate:user and task.evaluation_status == 'pending' and task.percentage_completion < 100 %}
+                            <div class="mt-4">
+                                <h6>Task Evaluation:</h6>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'core:evaluate-task' task.id %}" class="btn btn-primary">
+                                        <i class="fa fa-star"></i> Evaluate Task
+                                    </a>
+                                    <a href="{% url 'core:close-incomplete-task' task.id %}" class="btn btn-warning">
+                                        <i class="fa fa-times-circle"></i> Close Incomplete Task
+                                    </a>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fa fa-info-circle"></i> "Close Incomplete Task" will apply a -20% penalty for manager closure.
+                                </small>
+                            </div>
+                            {% elif task|can_user_evaluate:user and task.evaluation_status == 'pending' and task.percentage_completion >= 100 %}
+                            <div class="mt-4">
+                                <h6>Task Evaluation:</h6>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'core:evaluate-task' task.id %}" class="btn btn-primary">
+                                        <i class="fa fa-star"></i> Evaluate Task
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+
+                            
+                            {% if task.evaluation_status == 'evaluated' %}
+                            <div class="mt-4">
+                                <h6><i class="fa fa-calculator"></i> Task Evaluation Results:</h6>
+                                <div class="alert alert-success">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Final Score:</strong> 
+                                            <span class="badge badge-{% if task.final_score >= 80 %}success{% elif task.final_score >= 60 %}warning{% else %}danger{% endif %} badge-lg">
+                                                {{ task.final_score|floatformat:1 }}%
+                                            </span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Evaluated By:</strong> {{ task.evaluated_by.get_full_name }}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if task.quality_score_calculated %}
+                                    <div class="mt-3">
+                                        <h6><i class="fa fa-list-ol"></i> Evaluation Breakdown:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-borderless">
+                                                <tbody>
+                                                    <tr>
+                                                        <td width="30%"><strong>Quality:</strong></td>
+                                                        <td>
+                                                            {% if task.quality %}
+                                                                {{ task.quality.name }} ({{ task.quality_score_calculated|floatformat:1 }}%)
+                                                            {% else %}
+                                                                Not set
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% if task.priority and task.priority_multiplier %}
+                                                    <tr>
+                                                        <td><strong>Priority:</strong></td>
+                                                        <td>
+                                                            {{ task.priority.name }} → 
+                                                            {% if task.priority_multiplier > 1 %}
+                                                                +{{ task.priority_multiplier|add:"-1"|multiply:100|floatformat:0 }}% → 
+                                                                {{ task.quality_score_calculated|floatformat:1 }} × {{ task.priority_multiplier|floatformat:2 }} = 
+                                                                <strong>{{ task.quality_score_calculated|multiply:task.priority_multiplier|floatformat:1 }}</strong>
+                                                            {% else %}
+                                                                {{ task.priority_multiplier|floatformat:2 }}x multiplier
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
+                                                    {% if task.time_bonus_penalty != 0 %}
+                                                    <tr>
+                                                        <td><strong>Time Adjustment:</strong></td>
+                                                        <td>
+                                                            {% if task.completion_date and task.target_date %}
+                                                                {% if task.completion_date.date < task.target_date %}
+                                                                    Finished {{ task.target_date|timeuntil:task.completion_date.date }} early → 
+                                                                    <span class="text-success">+{{ task.time_bonus_penalty|floatformat:1 }}%</span>
+                                                                {% elif task.completion_date.date > task.target_date %}
+                                                                    Finished {{ task.completion_date.date|timeuntil:task.target_date }} late → 
+                                                                    <span class="text-danger">{{ task.time_bonus_penalty|floatformat:1 }}%</span>
+                                                                {% endif %}
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
+                                                    {% if task.manager_closure_penalty_applied %}
+                                                    <tr>
+                                                        <td><strong>Manager Closure:</strong></td>
+                                                        <td>
+                                                            <span class="text-warning">
+                                                                <i class="fa fa-exclamation-triangle"></i> Manager closure penalty applied
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
+                                                    <tr class="table-active">
+                                                        <td><strong>Final Score:</strong></td>
+                                                        <td>
+                                                            <strong>{{ task.final_score|floatformat:1 }}%</strong>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if task.evaluation_comments %}
+                                    <div class="mt-3">
+                                        <strong>Evaluation Comments:</strong><br>
+                                        <div class="alert alert-info">
+                                            {{ task.evaluation_comments|linebreaks }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            <strong>Evaluation Date:</strong> {{ task.evaluated_date|date:"M d, Y H:i" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>File Attachments</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if task.file_upload %}
+                                        <div class="mb-3">
+                                            <strong>Uploaded File:</strong><br>
+                                            <a href="{% url 'core:download-file' task.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fa fa-download"></i> Download File
+                                            </a>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">No files attached</p>
+                                    {% endif %}
+                                    
+                                    {% if task|can_user_upload_file:user %}
+                                        <hr>
+                                        <div class="mt-3">
+                                            <a href="{% url 'core:upload-task-file' task.id %}" class="btn btn-sm btn-outline-success">
+                                                <i class="fa fa-upload"></i> Upload File
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if task.is_overdue %}
+                            <div class="alert alert-warning mt-3">
+                                <i class="fa fa-exclamation-triangle"></i>
+                                <strong>Overdue!</strong> This task is past its target date.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

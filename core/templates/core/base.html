@@ -1,0 +1,294 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% if not DEBUG %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-147225311-2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);} 
+      gtag('js', new Date());
+      gtag('config', 'UA-147225311-2');
+    </script>
+    {% endif %}
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="CoreUI - Open Source Bootstrap Admin Template">
+  <meta name="author" content="Łukasz Holeczek">
+  <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,AngularJS,Angular,Angular2,Angular 2,Angular4,Angular 4,jQuery,CSS,HTML,RWD,Dashboard,React,React.js,Vue,Vue.js">
+  <meta name="google-site-verification" content="83fcqoPn-YTkXathQiicW-x3U2RWZh4PaPUzk91wtjY" />
+  <title>Stranxon</title>
+  <link rel="icon" href="{% static 'core/img/logos/title.jpg' %}" type="image/jpeg">
+
+  <link href="{% static 'core/css/font-awesome.min.css' %}" rel="stylesheet">
+  <link href="{% static 'core/css/simple-line-icons.min.css' %}" rel="stylesheet">
+  <link href="{% static 'core/css/estilo.css' %}" rel="stylesheet">
+  <link href="{% static 'core/css/style.css' %}" rel="stylesheet">
+
+</head>
+{% block body %}
+<body class="app header-fixed sidebar-fixed aside-menu-fixed aside-menu-hidden">
+  <header class="app-header navbar">
+    <button class="navbar-toggler mobile-sidebar-toggler d-lg-none mr-auto" type="button">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    
+    <button class="navbar-toggler sidebar-toggler d-md-down-none" type="button">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <ul class="nav navbar-nav d-md-down-none">
+      <li class="nav-item px-3">
+        <a class="nav-link" href="{% url 'core:dashboard' %}">
+          {% if user.user_type == 'admin' %}Admin Dashboard
+          {% elif user.user_type == 'manager' %}Manager Dashboard
+          {% else %}Employee Dashboard{% endif %}
+        </a>
+      </li>
+    </ul>
+    
+    <div class="brand-gui d-none d-md-inline">
+      <a href="{% url 'core:dashboard' %}"><h1 class="company-name">Stranxon</h1></a>
+    </div>
+    <ul class="nav navbar-nav ml-auto">
+      {% if user.is_authenticated %}
+      <li class="text-white d-none d-md-inline">Hello, {{ user.username }}</li>
+      {% else %}
+      <li class="text-muted">
+        <a href="{% url 'core:login' %}">sign in</a>
+      </li>
+      {% endif %}
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+          <i class="fa fa-bell"></i>
+          {% if unread_count and unread_count > 0 %}
+            <span class="badge badge-pill badge-notify">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+        <div class="dropdown-menu dropdown-menu-right notifications-dropdown">
+          <div class="dropdown-header text-center">
+            <strong>Notifications</strong>
+          </div>
+          {% if unread_notifications and unread_notifications|length > 0 %}
+            {% for notification in unread_notifications %}
+              <a class="dropdown-item mark-read-link" data-id="{{ notification.id }}" href="{{ notification.link|default:'#' }}">
+                <i class="fa fa-info-circle"></i> {{ notification.message|truncatechars:60 }}
+                <br>
+                <small class="text-muted">{{ notification.created_at|date:'M d, H:i' }}</small>
+              </a>
+            {% endfor %}
+            <div class="dropdown-divider"></div>
+          {% else %}
+            <span class="dropdown-item text-muted">No new notifications</span>
+            <div class="dropdown-divider"></div>
+          {% endif %}
+          <div class="dropdown-footer">
+            <a class="dropdown-item" href="{% url 'core:notifications-list' %}">
+              <i class="fa fa-list"></i> View All Notifications
+            </a>
+          </div>
+        </div>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+          {% if user.is_authenticated and logged_user %}
+            <img src="{{ logged_user.avatar_url }}" class="img-avatar" alt="img">
+          {% else %}
+            <img src="{% static 'core/img/avatar/blank_profile.png' %}" class="img-avatar" alt="img">
+          {% endif %}
+        </a>
+        <div class="dropdown-menu dropdown-menu-right">
+          
+          {% if user.is_authenticated %}
+          {% if user.is_authenticated and user.user_type != 'admin' %}
+          <div class="dropdown-header text-center">
+            <strong>Account</strong>
+          </div>
+          <a class="dropdown-item" href="{% url 'core:projects' %}"><i class="fa fa-tasks"></i> Tasks<span class="badge badge-danger">{{ user.task_set.values.count }}</span></a>
+          {% endif %}
+          <div class="dropdown-header text-center">
+            <strong>Settings</strong>
+          </div>
+          <a class="dropdown-item" href="{% url 'core:profile' %}"><i class="fa fa-user"></i> Profile</a>
+          <div class="divider"></div>
+          <a class="dropdown-item" href="{% url 'core:logout' %}"><i class="fa fa-lock"></i> Logout</a>
+          {% else %}
+          <a class="dropdown-item" href="{% url 'core:login' %}"><i class="fa fa-user"></i> Login</a>
+          {% endif %}
+        </div>
+      </li>
+    </ul>
+   
+
+  </header>
+
+  <div class="app-body">
+    <div class="sidebar">
+      <nav class="sidebar-nav">
+        <ul class="nav">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'core:dashboard' %}"><i class="fa fa-tachometer"></i> Dashboard</a>
+          </li>
+          
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-tachometer"></i> Views</a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:notifications-list' %}">
+                  <i class="fa fa-bell ml-2"></i> View Notifications
+                  {% if unread_count and unread_count > 0 %}
+                    <span class="badge badge-pill badge-notify ml-2">{{ unread_count }}</span>
+                  {% endif %}
+                </a>
+              </li>
+              {% if user.user_type != 'admin' %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:projects'%}"><i class="fa fa-paper-plane ml-2"></i> View Tasks </a>
+              </li>
+              {% endif %}
+              {% if user.user_type != 'employee' %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:users'%}"><i class="fa fa-user ml-2"></i> View Users</a>
+              </li>
+              {% endif %}
+            </ul>
+          </li>
+          <li class="nav-title">
+            Register
+          </li>
+
+          {% if user.user_type != 'admin' %}
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-puzzle-piece"></i> Tasks</a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:new-task'%}"><i class="fa fa-plus ml-2"></i> New Task</a>
+              </li>
+            </ul>
+          </li>
+          {% endif %}
+          {% if user.user_type == 'admin' %}
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-user"></i> Users</a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:new-user' %}"><i class="fa fa-user-plus ml-2"></i> Create New User</a>
+              </li>
+            </ul>
+          </li>
+          {% endif %}
+          
+          {% if user.user_type == 'manager' %}
+          <li class="divider"></li>
+          <li class="nav-title">
+            Settings
+          </li>
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> Management</a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:settings-dashboard' %}"><i class="fa fa-tachometer ml-2"></i> Settings Dashboard</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:kpi-list' %}"><i class="fa fa-line-chart ml-2"></i> Add KPIs</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:progress-report' %}"><i class="fa fa-file ml-2"></i> Progress Report</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:employee-progress-list' %}"><i class="fa fa-bar-chart ml-2"></i> Employee Progress</a>
+              </li>
+            </ul>
+          </li>
+          {% endif %}
+          
+          {% if user.user_type == 'admin' %}
+          <li class="divider"></li>
+          <li class="nav-title">
+            Admin Settings
+          </li>
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> System Management</a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:qualitytype-list' %}"><i class="fa fa-star ml-2"></i> Manage Quality Types</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:taskprioritytype-list' %}"><i class="fa fa-star ml-2"></i> Manage Priority Types</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:taskevaluationsettings' %}"><i class="fa fa-calculator ml-2"></i> Evaluation Settings</a>
+              </li>
+            </ul>
+          </li>
+          {% endif %}
+          <li class="nav-title">
+            Extras
+          </li>
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-star"></i> Pages</a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-in ml-2"></i> Login</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-out ml-2"></i> Logout</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      
+      <button class="sidebar-minimizer brand-minimizer" type="button"></button>
+    </div>
+
+    <main class="main">
+      <ol class="breadcrumb">
+        {% block breadcrumb %}
+        <li class="breadcrumb-item active">Home</li>
+        <li class="breadcrumb-item">Dashboard</li>
+        {% endblock breadcrumb%}
+
+        <li class="breadcrumb-menu d-md-down-none">
+          <div class="btn-group" role="group" aria-label="Button group">
+            <a class="btn" href="./"><i class="fa fa-tachometer"></i> &nbsp;Dashboard</a>
+          </div>
+        </li>
+      </ol>
+      {% if request.resolver_match and request.resolver_match.url_name != 'dashboard' %}
+      {% include 'core/partials/messages.html' %}
+      {% endif %}
+{% block content %}
+{% endblock %}
+    </main>
+  </div>
+
+  <footer class="app-footer text-center justify-content-center fixed-bottom py-2 py-lg-3">
+    <span><a href="#">Copyright</a> © Stranxon.</span>
+  </footer>
+
+    <script src="{% static 'core/vendors/js/jquery.min.js'%}"></script>
+    <script src="{% static 'core/vendors/js/popper.min.js'%}"></script>
+    <script src="{% static 'core/vendors/js/bootstrap.min.js'%}"></script>
+    <script src="{% static 'core/vendors/js/pace.min.js'%}"></script>
+    <script src="{% static 'core/vendors/js/Chart.min.js'%}"></script>
+    <script src="{% static 'core/js/app.js'%}"></script>
+    <script src="{% static 'core/js/main.js'%}"></script>
+    <script src="{% static 'core/js/notifications.js'%}"></script>
+    <script>
+      // Inline helper: mark unread dropdown items as read when clicked
+      $(document).on('click', '.mark-read-link', function (e) {
+        var id = $(this).data('id');
+        if (!id) { return; }
+        // Fire-and-forget request; do not block navigation
+        fetch('{% url "core:mark-notification-read" 0 %}'.replace('/0/', '/' + id + '/'), {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).catch(function(){ /* ignore */ });
+      });
+    </script>
+
+</body>
+{% endblock body %}
+</html>

@@ -1,0 +1,16 @@
+<!-- {% extends 'core/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>{{ task_user.get_full_name }}'s Tasks</h3>
+  <ul class="list-group mt-3">
+    {% for task in tasks %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ task.task_name }}
+        <span class="badge badge-info">{{ task.status }}</span>
+      </li>
+    {% empty %}
+      <li class="list-group-item">No tasks assigned.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %} -->

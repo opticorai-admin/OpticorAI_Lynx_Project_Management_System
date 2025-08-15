@@ -1,0 +1,142 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">
+                        {% if form.instance.pk %}
+                            <i class="fa fa-edit"></i> Edit Priority Type
+                        {% else %}
+                            <i class="fa fa-plus"></i> Create New Priority Type
+                        {% endif %}
+                    </h4>
+                    <div class="card-header-actions">
+                        <a href="{% url 'core:taskprioritytype-list' %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Priority Types
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}" role="alert">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.name.errors }}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.name.help_text %}
+                                        <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>
+                                    {{ form.code }}
+                                    {% if form.code.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.code.errors }}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.code.help_text %}
+                                        <small class="form-text text-muted">{{ form.code.help_text }}</small>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.multiplier.id_for_label }}">{{ form.multiplier.label }}</label>
+                                    {{ form.multiplier }}
+                                    {% if form.multiplier.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.multiplier.errors }}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.multiplier.help_text %}
+                                        <small class="form-text text-muted">{{ form.multiplier.help_text }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.sort_order.id_for_label }}">{{ form.sort_order.label }}</label>
+                                    {{ form.sort_order }}
+                                    {% if form.sort_order.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.sort_order.errors }}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.sort_order.help_text %}
+                                        <small class="form-text text-muted">{{ form.sort_order.help_text }}</small>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="custom-control custom-checkbox">
+                                        {{ form.is_active }}
+                                        <label class="custom-control-label" for="{{ form.is_active.id_for_label }}">
+                                            {{ form.is_active.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                        <div class="alert alert-danger mt-2">
+                                            {{ form.is_active.errors }}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.is_active.help_text %}
+                                        <small class="form-text text-muted">{{ form.is_active.help_text }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.description.help_text %}
+                                <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-save"></i>
+                                {% if form.instance.pk %}
+                                    Update Priority Type
+                                {% else %}
+                                    Create Priority Type
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'core:taskprioritytype-list' %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,109 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load task_permissions %}
+
+{% block breadcrumb %}
+        <li class="breadcrumb-item">Home</li>
+        <li class="breadcrumb-item">Tasks</li>
+        <li class="breadcrumb-item">Task Detail</li>
+        <li class="breadcrumb-item active">Upload File</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+{% if task|can_user_upload_file:user %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fa fa-upload"></i> Upload File to Task</h4>
+                    <div class="card-header-actions">
+                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Task
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6><i class="fa fa-info-circle"></i> Task Information</h6>
+                                <p class="mb-1"><strong>Task:</strong> {{ task.issue_action|truncatechars:100 }}</p>
+                                <p class="mb-1"><strong>Status:</strong> 
+                                    <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </p>
+                                <p class="mb-0"><strong>Completion:</strong> {{ task.percentage_completion }}%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if task.file_upload %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <h6><i class="fa fa-exclamation-triangle"></i> Current File</h6>
+                                <p class="mb-2">This task already has a file attached: <strong>{{ task.file_upload.name }}</strong></p>
+                                <p class="mb-0">Uploading a new file will replace the existing one.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}" role="alert">
+                                    <i class="fa fa-exclamation-circle"></i> {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <div class="form-group">
+                            <label for="file_upload">Select File to Upload</label>
+                            <input type="file" name="file_upload" id="file_upload" class="form-control" required>
+                            <small class="form-text text-muted">
+                                Supported formats: PDF, Word, Excel, images, zip, and other document files.
+                                Maximum file size: 200MB
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-upload"></i> Upload File
+                            </button>
+                            <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="text-danger"><i class="fa fa-exclamation-triangle"></i> Access Denied</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5>You do not have permission to upload files to this task.</h5>
+                        <p>Only the task owner or their supervisor can upload files to this task.</p>
+                    </div>
+                    <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary">
+                        <i class="fa fa-arrow-left"></i> Back to Task
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 
