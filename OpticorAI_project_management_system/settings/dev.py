@@ -3,7 +3,7 @@ from .base import *  # noqa
 import os
 
 DEBUG = True
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dxnl0q@bvrj$x8b**h*088h7mro+nb!wl6mzumk9+1z4za4zq&')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8')
 ALLOWED_HOSTS = ['*']
 
 # Email backend for dev (override with env to enable real SMTP in development)
