@@ -2,7 +2,7 @@
 from .base import *  # noqa
 import os
 
-DEBUG = False
+DEBUG = True
 
 # Read secret from the proper environment variable
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
@@ -20,7 +20,14 @@ ALLOWED_HOSTS = [
 ]
 
 
+from django.conf import settings
+from django.http import JsonResponse
 
+def show_settings(request):
+    return JsonResponse({
+        "ALLOWED_HOSTS": settings.ALLOWED_HOSTS,
+        "CSRF_TRUSTED_ORIGINS": settings.CSRF_TRUSTED_ORIGINS,
+    })
 
 
 # Security hardening
