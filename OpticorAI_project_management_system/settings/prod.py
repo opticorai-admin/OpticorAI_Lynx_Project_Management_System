@@ -3,12 +3,13 @@ from .base import *  # noqa
 import os
 from django.conf import settings
 from django.http import JsonResponse
-
+from dotenv import load_dotenv
 DEBUG = True
 
+load_dotenv(".env.production")
 # Read secret from the proper environment variable
-SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 
 # Optional but recommended: Also allow this host in ALLOWED_HOSTS
