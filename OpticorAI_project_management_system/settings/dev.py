@@ -2,7 +2,7 @@
 from .base import *  # noqa
 import os
 
-DEBUG = True
+DEBUG = False
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8')
 ALLOWED_HOSTS = ['*']
 

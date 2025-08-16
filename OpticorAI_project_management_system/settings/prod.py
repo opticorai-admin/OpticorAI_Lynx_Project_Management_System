@@ -1,27 +1,25 @@
 """Production settings."""
 from .base import *  # noqa
 import os
+from django.conf import settings
+from django.http import JsonResponse
 
 DEBUG = True
 
 # Read secret from the proper environment variable
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
-# ✅ Add this to allow your Railway domain
-CSRF_TRUSTED_ORIGINS = [
-    "https://web-production-60bd4.up.railway.app"
-]
+
 
 # Optional but recommended: Also allow this host in ALLOWED_HOSTS
-ALLOWED_HOSTS = [
-    "web-production-60bd4.up.railway.app",
-    "127.0.0.1",
-    "localhost"
-]
+ALLOWED_HOSTS = ['web-production-60bd4.up.railway.app', '127.0.0.1', 'localhost'] + os.environ.get('DJANGO_ALLOWED_HOSTS','').split(',')
+
+# ✅ Add this to allow your Railway domain
+CSRF_TRUSTED_ORIGINS = ['https://web-production-60bd4.up.railway.app'] + os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS','').split(',')
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
-from django.conf import settings
-from django.http import JsonResponse
 
 def show_settings(request):
     return JsonResponse({
