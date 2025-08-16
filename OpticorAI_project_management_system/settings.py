@@ -12,20 +12,9 @@ if not DEBUG and not SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set in production")
 
 # ALLOWED HOSTS / CSRF
-ALLOWED_HOSTS = os.environ.get(
-    'DJANGO_ALLOWED_HOSTS',
-    'web-production-60bd4.up.railway.app,127.0.0.1,localhost'
-).split(',')
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://web-production-60bd4.up.railway.app'
-]
+ALLOWED_HOSTS = ['*']
 
 
-# CSRF_TRUSTED_ORIGINS = os.environ.get(
-#     'DJANGO_CSRF_TRUSTED_ORIGINS',
-#     'https://web-production-60bd4.up.railway.app'
-# ).split(',')
 
 # APPS
 INSTALLED_APPS = [
@@ -131,11 +120,11 @@ ENABLE_EMAIL_2FA = os.environ.get('ENABLE_EMAIL_2FA', 'true').lower() == 'true'
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'ashirfabtechsol@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'jyig urwj rtdi ptcy')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@example.com')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'ashirfabtechsol@gmail.com')
 
 # REDIS
 if os.environ.get('REDIS_URL'):
