@@ -1,3 +1,4 @@
+
 """
 Django production-ready settings (merged into one file).
 Supports environment-based config and is compatible with local dev and deployment platforms (e.g., Railway, PythonAnywhere).
@@ -10,7 +11,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 # DEBUG/SECRET
-DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() == 'false'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() == 'true'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8' if DEBUG else None)
 if not DEBUG and not SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set in production")
@@ -18,7 +19,7 @@ if not DEBUG and not SECRET_KEY:
 # ALLOWED HOSTS / CSRF
 ALLOWED_HOSTS = os.environ.get(
     'DJANGO_ALLOWED_HOSTS',
-    '127.0.0.1,localhost'
+    'web-production-60bd4.up.railway.app,127.0.0.1,localhost'
 ).split(',')
 
 CSRF_TRUSTED_ORIGINS = os.environ.get(
