@@ -16,8 +16,12 @@ if not DEBUG and not SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set in production")
 
 # ALLOWED HOSTS / CSRF
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'https://web-production-60bd4.up.railway.app, 127.0.0.1,localhost').split(',')
-CSRF_TRUSTED_ORIGINS = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://web-production-60bd4.up.railway.app').split(',') if not DEBUG else []
+default_hosts = ['web-production-60bd4.up.railway.app', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', ','.join(default_hosts)).split(',')
+
+default_csrf_origins = ['https://web-production-60bd4.up.railway.app']
+CSRF_TRUSTED_ORIGINS = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', ','.join(default_csrf_origins)).split(',') if not DEBUG else []
+
 
 # APPS
 INSTALLED_APPS = [
