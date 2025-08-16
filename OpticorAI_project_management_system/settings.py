@@ -5,14 +5,18 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 # DEBUG/SECRET
-DEBUG = False
+# DEBUG = False
 
 
 SECRET_KEY = '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8'
 
-# ALLOWED HOSTS / CSRF
+DEBUG = False
+
 ALLOWED_HOSTS = ['web-production-60bd4.up.railway.app']
 CSRF_TRUSTED_ORIGINS = ['https://web-production-60bd4.up.railway.app']
+
+# REQUIRED FOR CSRF TO WORK BEHIND PROXY LIKE RAILWAY
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 print("CSRF_TRUSTED_ORIGINS = ", CSRF_TRUSTED_ORIGINS)
 
 
