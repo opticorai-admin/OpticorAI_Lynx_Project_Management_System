@@ -6,13 +6,8 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    # If running the dev server, force dev settings so plain `python manage.py runserver` works locally
-    # os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'OpticorAI_project_management_system.settings')
-    if any(arg.startswith('runserver') for arg in sys.argv[1:]):
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'OpticorAI_project_management_system.settings.dev'
-    else:
-        # Otherwise, use the compatibility shim (can still be overridden by env var)
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'OpticorAI_project_management_system.settings')
+    # Use consolidated settings module (can be overridden by env var)
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'OpticorAI_project_management_system.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
