@@ -5,14 +5,16 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 # DEBUG/SECRET
-DEBUG = os.environ.get('DJANGO_DEBUG', '').lower() == 'true'
+DEBUG = False
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8' if DEBUG else None)
-if not DEBUG and not SECRET_KEY:
-    raise RuntimeError("DJANGO_SECRET_KEY must be set in production")
+
+SECRET_KEY = '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8'
 
 # ALLOWED HOSTS / CSRF
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['web-production-60bd4.up.railway.app']
+
+
+CSRF_TRUSTED_ORIGINS = ['https://web-production-60bd4.up.railway.app']
 
 
 
@@ -117,14 +119,16 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 ENABLE_EMAIL_2FA = os.environ.get('ENABLE_EMAIL_2FA', 'true').lower() == 'true'
 
 # EMAIL
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'ashirfabtechsol@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'jyig urwj rtdi ptcy')
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'ashirfabtechsol@gmail.com')
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'ashirfabtechsol@gmail.com'
+EMAIL_HOST_PASSWORD = 'jyig urwj rtdi ptcy'
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = 'ashirfabtechsol@gmail.com'
+
+
 
 # REDIS
 if os.environ.get('REDIS_URL'):
