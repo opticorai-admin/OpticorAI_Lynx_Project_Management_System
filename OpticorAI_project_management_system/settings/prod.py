@@ -17,15 +17,17 @@ ALLOWED_HOSTS = ['web-production-60bd4.up.railway.app', '127.0.0.1', 'localhost'
 # ✅ Add this to allow your Railway domain
 CSRF_TRUSTED_ORIGINS = ['https://web-production-60bd4.up.railway.app'] + os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS','').split(',')
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-
-
 def show_settings(request):
     return JsonResponse({
         "ALLOWED_HOSTS": settings.ALLOWED_HOSTS,
         "CSRF_TRUSTED_ORIGINS": settings.CSRF_TRUSTED_ORIGINS,
     })
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+
+
 
 
 # Security hardening
@@ -47,11 +49,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'ashirfabtechsol@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'jyig urwj rtdi ptcy')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@example.com')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'ashirfabtechsol@gmail.com')
 
 # Optional Redis cache (enabled if REDIS_URL is provided)
 if os.environ.get('REDIS_URL'):
