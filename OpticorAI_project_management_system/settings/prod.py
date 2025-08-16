@@ -7,15 +7,18 @@ DEBUG = False
 # Read secret from the proper environment variable
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
-ALLOWED_HOSTS = [
-    'web-production-60bd4.up.railway.app',
-    '127.0.0.1',
-    'localhost',
-] + os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',')
-
+# ✅ Add this to allow your Railway domain
 CSRF_TRUSTED_ORIGINS = [
-    'https://web-production-60bd4.up.railway.app'
-] + os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+    "https://web-production-60bd4.up.railway.app"
+]
+
+# Optional but recommended: Also allow this host in ALLOWED_HOSTS
+ALLOWED_HOSTS = [
+    "web-production-60bd4.up.railway.app",
+    "127.0.0.1",
+    "localhost"
+]
+
 
 
 
