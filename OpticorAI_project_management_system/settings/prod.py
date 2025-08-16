@@ -4,7 +4,7 @@ import os
 from django.conf import settings
 from django.http import JsonResponse
 from dotenv import load_dotenv
-DEBUG = True
+DEBUG = False
 
 load_dotenv(".env.production")
 # Read secret from the proper environment variable
