@@ -10,18 +10,21 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 # DEBUG/SECRET
-DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() == 'true'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'false').lower() == 'false'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8' if DEBUG else None)
 if not DEBUG and not SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set in production")
 
 # ALLOWED HOSTS / CSRF
-default_hosts = ['web-production-60bd4.up.railway.app', '127.0.0.1', 'localhost']
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', ','.join(default_hosts)).split(',')
+ALLOWED_HOSTS = os.environ.get(
+    'DJANGO_ALLOWED_HOSTS',
+    '127.0.0.1,localhost'
+).split(',')
 
-default_csrf_origins = ['https://web-production-60bd4.up.railway.app']
-CSRF_TRUSTED_ORIGINS = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', ','.join(default_csrf_origins)).split(',') if not DEBUG else []
-
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    'https://web-production-60bd4.up.railway.app'
+).split(',')
 
 # APPS
 INSTALLED_APPS = [
