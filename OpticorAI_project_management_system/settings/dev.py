@@ -4,7 +4,7 @@ import os
 from decouple import config
 
 DEBUG = True
-SECRET_KEY = config('DJANGO_SECRET_KEY')
+SECRET_KEY = config('DJANGO_SECRET_KEY', default='dev-secret-key')
 ALLOWED_HOSTS = ['*']
 
 # Email backend for dev (override with env to enable real SMTP in development)
@@ -29,3 +29,6 @@ EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@example.com')
 
 
+
+# Temporarily disable email-based 2FA in development without touching app code
+ENABLE_EMAIL_2FA = False
