@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import date
 import os
+from django.conf import settings
 from django import forms
 from django.http import JsonResponse
 from django.views import View

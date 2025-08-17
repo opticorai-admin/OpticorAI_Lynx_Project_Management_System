@@ -24,10 +24,8 @@
                                 <div class="message">
                                     <div class="py-3 pb-5 mr-3 float-left">
                                         <div class="avatar">
-                                            <!-- <img src="{{ logged_user.avatar_url|default:static('core/img/avatar/blank_profile.png') }}" class="img-avatar" alt="img"> -->
-                                            {% static 'core/img/avatar/blank_profile.png' as default_avatar %}
-                                            <img src="{{ logged_user.avatar_url }}" alt="Avatar"
-                                            onerror="this.onerror=null; this.src='{{ default_avatar }}';" class="img-avatar">
+                                            <img src="{{ logged_user.avatar_url|default:static('core/img/avatar/blank_profile.png') }}" class="img-avatar" alt="img">
+                                            
                                             <span class="avatar-status badge-success"></span>
                                         </div>
                                     </div>
