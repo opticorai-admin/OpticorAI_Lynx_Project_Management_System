@@ -31,4 +31,4 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no
 
 
 # Temporarily disable email-based 2FA in development without touching app code
-ENABLE_EMAIL_2FA = False
+ENABLE_EMAIL_2FA = True

@@ -9,7 +9,7 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', default='dev-secret-key')
 
 ALLOWED_HOSTS = ['opticorai-project-management-system.onrender.com', 'localhost', '127.0.0.1']
 
-print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
+
 
 # Security hardening
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
@@ -59,7 +59,7 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': config('CLOUDINARY_API_SECRET'),
 }
 
-
+ENABLE_EMAIL_2FA = True
 
 
 

@@ -18,7 +18,10 @@ INSTALLED_APPS = [
 
     # local apps
     'core',
+    
 ]
+
+
 
 AUTH_USER_MODEL = 'core.CustomUser'
 

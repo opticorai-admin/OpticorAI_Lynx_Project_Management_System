@@ -28,7 +28,7 @@ class CustomUser(AbstractUser):
     created_date = models.DateField(auto_now_add=True)
     created_time = models.TimeField(auto_now_add=True)
     under_supervision = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='supervised_users')
-    avatar = models.ImageField(upload_to='core/avatar', blank=True)
+    avatar = models.ImageField(upload_to='core/avatar', blank=True, null=True)
 
     def __str__(self):
         return self.username
@@ -69,6 +69,7 @@ class CustomUser(AbstractUser):
             pass
         # Otherwise, return the static PNG
         return static('core/img/avatar/blank_profile.png')
+   
 
 class KPI(models.Model):
     """
