@@ -1,6 +1,10 @@
 """Base settings shared by all environments."""
 from pathlib import Path
 import os
+try:
+    from decouple import config as env_config  # reads values from .env when available
+except Exception:  # decouple is optional for these reads
+    env_config = lambda key, default=None: os.environ.get(key, default)
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -76,8 +80,14 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-# Allow overriding MEDIA_ROOT via environment variable to support Render Persistent Disks
+# Allow overriding MEDIA_ROOT via env (e.g., when using Render Persistent Disk)
 MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', BASE_DIR / 'media'))
+
+# Optional Cloudinary media storage. If CLOUDINARY_URL is set (env or .env), store media on Cloudinary.
+_cloudinary_url = os.environ.get('CLOUDINARY_URL') or env_config('CLOUDINARY_URL', default=None)
+if _cloudinary_url:
+    INSTALLED_APPS += ['cloudinary', 'cloudinary_storage']
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
