@@ -28,7 +28,12 @@ def _build_email_body(message: str, link: Optional[str]) -> str:
         message.strip(),
     ]
     if link:
-        lines.extend(["", f"Link: {link}"])
+        # Ensure absolute URL for emails
+        if str(link).startswith("http://") or str(link).startswith("https://"):
+            absolute = link
+        else:
+            absolute = getattr(settings, "SITE_BASE_URL", "https://opticorai-project-management-system.onrender.com") + str(link)
+        lines.extend(["", f"Link: {absolute}"])
     return "\n".join(lines)
 
 
@@ -113,7 +118,9 @@ def send_welcome_on_user_created(sender, instance: CustomUser, created: bool, **
             "Your account has been created and is ready to use.",
             "",
             "Login page:",
-            f"/accounts/login/",
+            (
+                (getattr(settings, "SITE_BASE_URL", "https://opticorai-project-management-system.onrender.com") + "/accounts/login/")
+            ),
         ]
         body = "\n".join(lines)
         from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None) or "no-reply@example.com"

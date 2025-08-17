@@ -10,7 +10,6 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', default='dev-secret-key')
 ALLOWED_HOSTS = ['opticorai-project-management-system.onrender.com', 'localhost', '127.0.0.1']
 
 
-
 # Security hardening
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True

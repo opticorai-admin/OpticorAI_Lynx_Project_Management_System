@@ -98,6 +98,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
+# Base URL used in emails (fallback used if not set). Set this in prod env.
+SITE_BASE_URL = os.environ.get('SITE_BASE_URL', 'https://opticorai-project-management-system.onrender.com')
+
 # Custom Authentication Backend
 AUTHENTICATION_BACKENDS = [
     'core.auth_backends.EmailBackend',

@@ -282,3 +282,98 @@ iwr -Uri https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chart
 - Ensure SSL termination so security settings (HSTS, secure cookies, redirect) apply
 
 
+
+## Local Network (LAN) Installation
+
+Use this to run the app on one machine inside your office network while multiple computers access it via the server's LAN IP (e.g., `http://192.168.1.50:8000`).
+
+### Prerequisites
+- Python 3.11.x and pip (virtual environment recommended)
+- One machine acts as the server; others will access it via a browser
+- Open the chosen port (default 8000) in the server firewall
+
+### Environment (.env)
+Create a `.env` file in the project root (same folder as `manage.py`). For LAN, prefer development settings to avoid production‑only requirements (Cloudinary, SSL redirect).
+
+```env
+DJANGO_SETTINGS_MODULE=OpticorAI_project_management_system.settings.dev
+DJANGO_SECRET_KEY=change-me
+DJANGO_ALLOWED_HOSTS=*,localhost,127.0.0.1,192.168.1.50
+ENABLE_EMAIL_2FA=false
+SITE_BASE_URL=http://192.168.1.50:8000
+# Optional SMTP if you want real emails in LAN
+# EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# EMAIL_HOST=smtp.example.com
+# EMAIL_PORT=587
+# EMAIL_HOST_USER=
+# EMAIL_HOST_PASSWORD=
+# EMAIL_USE_TLS=true
+# DEFAULT_FROM_EMAIL=no-reply@example.com
+```
+
+Replace `192.168.1.50` with your server machine's LAN IP.
+
+### First‑time setup (run on the server machine)
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate   # Windows
+# source .venv/bin/activate  # Linux/macOS
+
+pip install -r requirements.txt
+
+python manage.py migrate
+python manage.py createsuperuser
+
+# Optional seed data
+python manage.py setup_evaluation_system
+python manage.py fix_priorities
+```
+
+### Run options
+
+#### Option A — Quick LAN test (development server)
+Suitable for demos/small teams; not a hardening substitute.
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+#### Option B — Windows production‑like (Waitress)
+```powershell
+set DJANGO_SETTINGS_MODULE=OpticorAI_project_management_system.settings.dev
+waitress-serve --listen=0.0.0.0:8000 OpticorAI_project_management_system.wsgi:application
+```
+
+#### Option C — Linux production‑like (Gunicorn)
+```bash
+export DJANGO_SETTINGS_MODULE=OpticorAI_project_management_system.settings.dev
+gunicorn OpticorAI_project_management_system.wsgi:application --bind 0.0.0.0:8000 --workers 3
+```
+
+#### Option D — Windows IIS (FastCGI)
+An IIS `web.config` is provided. If you choose IIS:
+- Update the `scriptProcessor`, `PYTHONHOME`, and `PYTHONPATH` to your venv paths
+- Either switch to dev settings or fully configure prod (Cloudinary, SSL)
+
+```xml
+<!-- OpticorAI_project_management_system/web.config snippet -->
+<environmentVariable name="DJANGO_SETTINGS_MODULE" value="OpticorAI_project_management_system.settings.dev" />
+<environmentVariable name="DJANGO_ALLOWED_HOSTS" value="localhost,127.0.0.1,192.168.1.50" />
+```
+
+### Client access (other computers)
+- Ensure the server firewall allows inbound on the chosen port (e.g., 8000)
+- On client machines, open a browser to: `http://SERVER_LAN_IP:8000`
+- Log in using the superuser you created
+
+### Firewall quick tips (Windows)
+Run PowerShell as Administrator:
+```powershell
+New-NetFirewallRule -DisplayName "Django LAN 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow
+```
+
+### Troubleshooting
+- 403/Bad Request host errors: include your LAN IP/hostname in `DJANGO_ALLOWED_HOSTS`
+- Redirects to HTTPS or 403 with CSRF in LAN: you are likely using prod settings; switch to dev (`DJANGO_SETTINGS_MODULE=...settings.dev`)
+- Static files missing in prod settings: run `python manage.py collectstatic --noinput` and configure a proper server/static middleware (dev mode serves static automatically)
+- Email OTP not arriving: either disable `ENABLE_EMAIL_2FA` or set valid SMTP settings
+- Port in use: change to another port, e.g., `0.0.0.0:8080`

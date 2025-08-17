@@ -328,7 +328,8 @@ class RegisterView(LoginRequiredMixin, View):
                 try:
                     from django.core.mail import send_mail
                     from django.conf import settings as dj_settings
-                    login_url = request.build_absolute_uri('/accounts/login/')
+                    base_url = getattr(dj_settings, 'SITE_BASE_URL', None)
+                    login_url = (base_url + '/accounts/login/') if base_url else request.build_absolute_uri('/accounts/login/')
                     subject = 'Your account credentials'
                     body_lines = [
                         f"Hello {new_user.get_full_name() or new_user.username},",
