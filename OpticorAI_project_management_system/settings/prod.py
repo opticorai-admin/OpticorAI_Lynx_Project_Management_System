@@ -7,7 +7,9 @@ DEBUG = False
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='dev-secret-key')
 
-ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = ['opticorai-project-management-system.onrender.com', 'localhost', '127.0.0.1']
+
+print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
 
 # Security hardening
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
