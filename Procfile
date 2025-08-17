@@ -1,1 +1,2 @@
-gunicorn OpticorAI_project_management_system.wsgi
+web: gunicorn OpticorAI_project_management_system.wsgi --log-file -
+
