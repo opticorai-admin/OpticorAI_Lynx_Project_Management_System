@@ -53,9 +53,10 @@ class LoginView(View):
             user = authenticate(request, username=email, password=password)
             if user is not None:
                 from django.conf import settings
-                # Temporary: bypass email-based 2FA at the LoginView level only
+                # Send OTP only on FIRST login (when last_login is None)
                 ENABLE_LOGINVIEW_2FA = True
-                if getattr(settings, 'ENABLE_EMAIL_2FA', True) and ENABLE_LOGINVIEW_2FA:
+                is_first_login = getattr(user, 'last_login', None) is None
+                if getattr(settings, 'ENABLE_EMAIL_2FA', True) and ENABLE_LOGINVIEW_2FA and is_first_login:
                     # Stage 1: create and send OTP, then redirect to verify
                     from django.core.mail import send_mail
                     from django.conf import settings as dj_settings
