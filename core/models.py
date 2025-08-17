@@ -54,17 +54,19 @@ class CustomUser(AbstractUser):
     @property
     def avatar_url(self):
         """Always returns a valid avatar URL - user uploaded or static PNG default"""
-        # Prefer returning the file URL directly (works for remote storage like Cloudinary)
+        # 1) Remote storages (e.g., Cloudinary): return URL directly
         try:
-            if self.avatar and getattr(self.avatar, 'url', None):
-                return self.avatar.url
+            if self.avatar:
+                url = getattr(self.avatar, 'url', None)
+                if url and ('cloudinary' in url or 'res.cloudinary.com' in url):
+                    return url
+                # 2) Local filesystem: return URL only if file exists
+                avatar_path = getattr(self.avatar, 'path', None)
+                if avatar_path and os.path.isfile(avatar_path) and url:
+                    return url
         except Exception:
-            # Some storage backends may raise if the file is missing
+            # If anything goes wrong, fall back to static default
             pass
-        # For local storage, verify file existence via path if available
-        avatar_path = getattr(self.avatar, 'path', None) if self.avatar else None
-        if avatar_path and os.path.isfile(avatar_path):
-            return getattr(self.avatar, 'url', None)
         # Otherwise, return the static PNG
         return static('core/img/avatar/blank_profile.png')
 

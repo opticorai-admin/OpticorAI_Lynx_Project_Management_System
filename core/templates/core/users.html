@@ -119,7 +119,10 @@
                         <tr>
                             <td class="text-center text-nowrap" style="min-width:60px;">
                                 <div class="avatar">
-                                <img src="{{ user1.avatar_url }}" class="img-avatar" alt="img">
+                                <!-- <img src="{{ user1.avatar_url|default:static('core/img/avatar/blank_profile.png') }}" class="img-avatar" alt="img"> -->
+                                {% static 'core/img/avatar/blank_profile.png' as default_avatar %}
+                                            <img src="{{ user1.avatar_url }}" alt="Avatar"
+                                            onerror="this.onerror=null; this.src='{{ default_avatar }}';" class="img-avatar">
                                 <span class="avatar-status badge-success"></span>
                                 </div>
                             </td>
