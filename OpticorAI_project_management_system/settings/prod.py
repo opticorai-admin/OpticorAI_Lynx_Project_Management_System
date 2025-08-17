@@ -1,16 +1,13 @@
 """Production settings."""
 from .base import *  # noqa
 import os
+from decouple import config
 
 DEBUG = False
 
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
-SECRET_KEY = '6+0(p7z1ylv0g_a)*3inzmtq-1%#qh_zdj_kz&2lp$d0ccc##8'
-
-
-ALLOWED_HOSTS = ['web-production-60bd4.up.railway.app']
-CSRF_TRUSTED_ORIGINS = ['https://web-production-60bd4.up.railway.app']
-print("CSRF_TRUSTED_ORIGINS = ", CSRF_TRUSTED_ORIGINS)
+ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='').split(',')
 
 # Security hardening
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '31536000'))
@@ -28,13 +25,13 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'ashirfabtechsol@gmail.com'
-EMAIL_HOST_PASSWORD = 'jyig urwj rtdi ptcy'
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-DEFAULT_FROM_EMAIL = 'ashirfabtechsol@gmail.com'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-reply@example.com')
 
 # Optional Redis cache (enabled if REDIS_URL is provided)
 if os.environ.get('REDIS_URL'):

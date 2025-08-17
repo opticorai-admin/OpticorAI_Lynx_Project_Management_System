@@ -13,6 +13,6 @@ from django.core.wsgi import get_wsgi_application
 
 # Default to production settings if explicitly set, otherwise fall back to
 # the compatibility shim which imports dev by default.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'OpticorAI_project_management_system.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'OpticorAI_project_management_system.settings.prod')
 
 application = get_wsgi_application()

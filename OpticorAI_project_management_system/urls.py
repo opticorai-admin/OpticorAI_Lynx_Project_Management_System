@@ -20,22 +20,11 @@ from django.urls import include
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls', namespace='core')),
     path('accounts/login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
-]
-
-
-
-urlpatterns += [
-    path("env-debug/", lambda r: JsonResponse({
-        "DEBUG": settings.DEBUG,
-        "CSRF_TRUSTED_ORIGINS": settings.CSRF_TRUSTED_ORIGINS,
-        "ALLOWED_HOSTS": settings.ALLOWED_HOSTS
-    })),
 ]
 
 # Serve static files during development
