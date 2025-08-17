@@ -30,7 +30,11 @@ urlpatterns = [
 # Serve static files during development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Always serve media files from MEDIA_ROOT
+# Note: In production this is acceptable for small apps, but for scale or persistence
+# you should use a proper object storage (e.g., S3/Cloudinary) or a persistent disk.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 
