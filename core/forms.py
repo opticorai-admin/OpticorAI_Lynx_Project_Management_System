@@ -786,6 +786,10 @@ class KPIForm(forms.ModelForm):
         cleaned_data = super().clean()
         name = cleaned_data.get('name')
         weight = cleaned_data.get('weight')
+        # Ensure blank sort_order defaults to 0 to avoid DB null constraint errors
+        sort_order = cleaned_data.get('sort_order')
+        if sort_order in [None, '']:
+            cleaned_data['sort_order'] = 0
         
         if self.user and self.user.user_type == 'manager':
             # Check for name uniqueness within the same manager's KPIs
