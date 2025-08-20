@@ -9,7 +9,8 @@ class TaskQuerySet(models.QuerySet):
         return self.filter(responsible=user)
 
     def for_manager(self, manager):
-        return self.filter(Q(responsible=manager) | Q(responsible__under_supervision=manager))
+        # Only employees under this manager; exclude tasks where the responsible is the manager themselves
+        return self.filter(responsible__under_supervision=manager)
 
     def evaluated(self):
         return self.filter(evaluation_status='evaluated')

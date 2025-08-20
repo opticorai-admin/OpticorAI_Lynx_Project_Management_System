@@ -13,7 +13,13 @@
     <div class="card">
         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
-                    <strong>{{ tasks_qs.count }} Tasks of Overall Sections</strong>
+                    <strong>
+                        {% if is_my_tasks %}
+                            {{ tasks_qs.count }} My Tasks
+                        {% else %}
+                            {{ tasks_qs.count }} Tasks of Overall Sections
+                        {% endif %}
+                    </strong>
                     <div class="btn-group" role="group">
                         {% if user.user_type != 'admin' %}
                             <a href="{% url 'core:new-task' %}" class="btn btn-primary btn-sm">
@@ -109,9 +115,11 @@
         </div>
         <div class="card-body">
             <form method="get" class="form-row align-items-end mb-3">
+                {% if not is_my_tasks %}
                 <div class="col-md-2 mb-2">
                     <input type="text" name="employee" class="form-control" placeholder="Employee name..." value="{{ employee_query }}">
                 </div>
+                {% endif %}
                 <div class="col-md-3 mb-2">
                     <input type="text" name="search" class="form-control" placeholder="Search by task name..." value="{{ search_query }}">
                 </div>

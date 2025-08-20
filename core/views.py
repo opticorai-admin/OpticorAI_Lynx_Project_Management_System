@@ -340,6 +340,7 @@ class RegisterView(LoginRequiredMixin, View):
                         f"Login URL: {login_url}",
                         f"Login Email: {new_user.email}",
                         f"Temporary Password: {raw_password}",
+                        "Please change your password from profile page after logging in for security reasons.",
                         "",
                         
                     ]
@@ -680,6 +681,43 @@ class ProjectsView(LoginRequiredMixin, View):
             'start_date': start_date,
             'end_date': end_date,
             'employee_query': employee_query,
+        }
+        return render(request, 'core/projects.html', context)
+
+class MyTasksView(LoginRequiredMixin, View):
+    def get(self, request):
+        user = request.user
+        # Only managers who are under supervision (i.e., managed by another manager)
+        if user.user_type != 'manager' or not getattr(user, 'under_supervision', None):
+            messages.error(request, 'Only managers under supervision can access My Tasks.')
+            return redirect('core:dashboard')
+
+        # Tasks assigned to this manager (as responsible)
+        tasks_qs = Task.objects.select_related('priority', 'kpi').filter(responsible=user)
+
+        # Basic filters consistent with ProjectsView
+        search_query = request.GET.get('search', '')
+        if search_query:
+            tasks_qs = tasks_qs.filter(
+                Q(issue_action__icontains=search_query)
+            )
+        status_filter = request.GET.get('status', '')
+        if status_filter:
+            tasks_qs = tasks_qs.filter(status=status_filter)
+
+        avg_tasks = tasks_qs.aggregate(avg=Avg('percentage_completion'))['avg'] or 0
+
+        paginator = Paginator(tasks_qs.order_by('-created_date'), 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'tasks': page_obj,
+            'tasks_qs': tasks_qs,
+            'avg_tasks': avg_tasks,
+            'search_query': search_query,
+            'status_filter': status_filter,
+            'is_my_tasks': True,
         }
         return render(request, 'core/projects.html', context)
 

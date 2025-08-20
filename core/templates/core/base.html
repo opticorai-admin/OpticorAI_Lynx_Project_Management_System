@@ -18,7 +18,7 @@
   <meta name="author" content="Łukasz Holeczek">
   <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,AngularJS,Angular,Angular2,Angular 2,Angular4,Angular 4,jQuery,CSS,HTML,RWD,Dashboard,React,React.js,Vue,Vue.js">
   <meta name="google-site-verification" content="83fcqoPn-YTkXathQiicW-x3U2RWZh4PaPUzk91wtjY" />
-  <title>Stranxon</title>
+  <title>Lynex</title>
   <link rel="icon" href="{% static 'core/img/logos/title.jpg' %}" type="image/jpeg">
 
   <link href="{% static 'core/css/font-awesome.min.css' %}" rel="stylesheet">
@@ -49,7 +49,7 @@
     </ul>
     
     <div class="brand-gui d-none d-md-inline">
-      <a href="{% url 'core:dashboard' %}"><h1 class="company-name">Stranxon</h1></a>
+      <a href="{% url 'core:dashboard' %}"><h1 class="company-name">Lynex</h1></a>
     </div>
     <ul class="nav navbar-nav ml-auto">
       {% if user.is_authenticated %}
@@ -146,6 +146,11 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'core:projects'%}"><i class="fa fa-paper-plane ml-2"></i> View Tasks </a>
               </li>
+              {% if user.user_type == 'manager' and user.under_supervision %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:my-tasks'%}"><i class="fa fa-user ml-2"></i> My Tasks</a>
+              </li>
+              {% endif %}
               {% endif %}
               {% if user.user_type != 'employee' %}
               <li class="nav-item">
@@ -265,7 +270,7 @@
   </div>
 
   <footer class="app-footer text-center justify-content-center fixed-bottom py-2 py-lg-3">
-    <span><a href="#">Copyright</a> © Stranxon.</span>
+    <span><a href="#">Copyright</a> © OpticorAI.</span>
   </footer>
 
     <script src="{% static 'core/vendors/js/jquery.min.js'%}"></script>

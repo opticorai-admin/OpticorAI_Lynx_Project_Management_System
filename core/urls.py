@@ -24,6 +24,7 @@ urlpatterns = [
     
     # --- Task Management ---
     path('projects/', views.ProjectsView.as_view(), name='projects'),
+    path('views/my-tasks/', views.MyTasksView.as_view(), name='my-tasks'),
     path('projects/new-task/', views.NewTaskView.as_view(), name='new-task'),
     path('projects/task/<int:task_id>/', views.TaskDetailView.as_view(), name='task-detail'),
     path('projects/task/<int:task_id>/edit/', views.EditTaskView.as_view(), name='edit-task'),
