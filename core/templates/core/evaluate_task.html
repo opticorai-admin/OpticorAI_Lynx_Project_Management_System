@@ -139,19 +139,7 @@
                             </div>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="{{ form.approval_status.id_for_label }}">{{ form.approval_status.label }}</label>
-                                    {{ form.approval_status }}
-                                    {% if form.approval_status.errors %}
-                                        <div class="alert alert-danger">
-                                            {{ form.approval_status.errors }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Approval Status removed from this form -->
                         
                         <div class="form-group">
                             <label for="{{ form.evaluation_comments.id_for_label }}">{{ form.evaluation_comments.label }}</label>

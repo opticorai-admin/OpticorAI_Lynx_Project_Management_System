@@ -605,9 +605,12 @@ class TaskRegistrationForm(forms.ModelForm):
             default_kpi = KPI.objects.first()
             if default_kpi:
                 task.kpi = default_kpi
-            task.target_date = task.start_date  # Default target date to start date for employees
+            # Respect employee-provided target date; if none was provided, default to start date
+            if not task.target_date:
+                task.target_date = task.start_date
             task.percentage_completion = 0
-            task.approval_status = 'pending'
+            # Default approval state is disapproved until explicitly approved
+            task.approval_status = 'disapproved'
         
         if commit:
             task.save()
@@ -976,12 +979,7 @@ class TaskEvaluationForm(forms.ModelForm):
         help_text="Actual completion date",
         required=True
     )
-    approval_status = forms.ChoiceField(
-        choices=APPROVAL_STATUS_CHOICES, 
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label="Approval Status",
-        required=True
-    )
+    # Removed from UI per requirements; approval is decided by manager via approve/disapprove actions
     evaluation_comments = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Evaluation comments...'}),
         required=False,
@@ -990,7 +988,7 @@ class TaskEvaluationForm(forms.ModelForm):
 
     class Meta:
         model = Task
-        fields = ['quality', 'close_date', 'approval_status', 'evaluation_comments']
+        fields = ['quality', 'close_date', 'evaluation_comments']
 
     def clean_close_date(self):
         close_date = self.cleaned_data.get('close_date')

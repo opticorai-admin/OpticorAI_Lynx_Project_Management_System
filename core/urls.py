@@ -33,6 +33,7 @@ urlpatterns = [
     path('projects/task/<int:task_id>/approve/', views.ApproveTaskView.as_view(), name='approve-task'),
     path('projects/task/<int:task_id>/evaluate/', views.EvaluateTaskView.as_view(), name='evaluate-task'),
     path('projects/task/<int:task_id>/close-incomplete/', views.CloseIncompleteTaskView.as_view(), name='close-incomplete-task'),
+    path('projects/task/<int:task_id>/submit-text/', views.SubmitTaskTextView.as_view(), name='submit-task-text'),
     
     # --- Settings Management (Manager Only) ---
     path('settings/', views.SettingsDashboardView.as_view(), name='settings-dashboard'),

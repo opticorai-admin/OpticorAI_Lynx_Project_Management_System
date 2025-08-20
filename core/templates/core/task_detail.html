@@ -77,10 +77,10 @@
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Approval Status:</strong></td>
+                                            <td><strong>Evaluation Status:</strong></td>
                                             <td>
-                                                <span class="badge badge-{% if task.approval_status == 'approved' %}success{% elif task.approval_status == 'disapproved' %}danger{% else %}warning{% endif %}">
-                                                    {{ task.get_approval_status_display }}
+                                                <span class="badge badge-{% if task.evaluation_status == 'evaluated' %}success{% else %}warning{% endif %}">
+                                                    {{ task.get_evaluation_status_display }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -122,14 +122,14 @@
                                                 {% endif %}
                                             </td>
                                         </tr>
-                                        <tr>
+                                        <!-- <tr>
                                             <td><strong>Created:</strong></td>
                                             <td>{{ task.created_date|date:"M d, Y H:i" }}</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Updated:</strong></td>
                                             <td>{{ task.updated_date|date:"M d, Y H:i" }}</td>
-                                        </tr>
+                                        </tr> -->
                                     </table>
                                 </div>
                             </div>
@@ -143,7 +143,9 @@
                             </div>
                             {% endif %}
                             
-                            {% if task|can_user_evaluate:user and task.approval_status == 'pending' %}
+                            
+                            
+                            {% if task|can_user_evaluate:user and task.evaluation_status == 'evaluated' %}
                             <div class="mt-4">
                                 <h6>Task Approval:</h6>
                                 <div class="btn-group" role="group">
@@ -322,6 +324,28 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            <!-- Employee text submission when no file is attached -->
+                            {% if not task.file_upload and task.responsible == user and task.status != 'closed' %}
+                            <div class="mt-4">
+                                <h6>Submit Work (Text)</h6>
+                                <form method="post" action="{% url 'core:submit-task-text' task.id %}">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <textarea class="form-control" name="employee_submission" rows="4" placeholder="Describe your work or paste links..." >{{ task.employee_submission }}</textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fa fa-paper-plane"></i> Submit Text
+                                    </button>
+                                </form>
+                            </div>
+                            {% elif task.employee_submission %}
+                            <div class="mt-4">
+                                <h6>Employee Submission</h6>
+                                <div class="alert alert-secondary">
+                                    {{ task.employee_submission|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
                             
                             {% if task.is_overdue %}
                             <div class="alert alert-warning mt-3">

@@ -23,6 +23,54 @@
           </a>
         </div>
         <div class="card-body">
+          <!-- KPI Weight Summary and Progress Formula moved here -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="card-title">KPI Weight Summary</h6>
+                  <div class="row">
+                    <div class="col-6">
+                      <strong>Total Weight:</strong> {{ total_kpi_weight }}%
+                    </div>
+                    <div class="col-6">
+                      <strong>Available:</strong> {{ available_weight }}%
+                    </div>
+                  </div>
+                  <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar" role="progressbar"
+                         data-width="{{ total_kpi_weight|default:0 }}"
+                         style="width: 0%"
+                         aria-valuenow="{{ total_kpi_weight }}"
+                         aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  {% if total_kpi_weight < 100 %}
+                    <small class="text-muted">Add more KPIs to reach 100% weight distribution</small>
+                  {% elif total_kpi_weight == 100 %}
+                    <small class="text-success">Perfect! All KPI weights are distributed (100%)</small>
+                  {% else %}
+                    <small class="text-danger">Total weight exceeds 100% - please adjust KPI weights</small>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card bg-info text-white">
+                <div class="card-body">
+                  <h6 class="card-title">Progress Formula</h6>
+                  <p class="card-text small">
+                    Employee Progress Score = Σ(final_score × KPI weight) ÷ Σ(KPI weight)
+                  </p>
+                  <p class="card-text small">
+                    Notes: Only CLOSED and evaluated tasks are included.
+                  </p>
+                  <!-- <p class="card-text small mb-0">
+                    <strong>Note:</strong> Total KPI weights must equal 100%
+                  </p> -->
+                </div>
+              </div>
+            </div>
+          </div>
           <!-- Search Bar -->
           <div class="row mb-3">
             <div class="col-md-6">
@@ -144,5 +192,15 @@
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    var bars = document.querySelectorAll('.progress-bar[data-width]');
+    bars.forEach(function(el){
+      var v = parseFloat(el.getAttribute('data-width')) || 0;
+      el.style.width = v + '%';
+    });
+  });
+  </script>
 
 {% endblock %} 

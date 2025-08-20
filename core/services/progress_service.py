@@ -40,6 +40,7 @@ def compute_weighted_progress(
                 'weighted_score': round(weighted, 2),
             }
             total_weighted += weighted
+            # Denominator accounts only for KPIs that have at least one included task
             total_weight += kpi['weight']
         else:
             breakdown[kpi['name']] = {
@@ -49,7 +50,7 @@ def compute_weighted_progress(
                 'average_score': 0,
                 'weighted_score': 0,
             }
-            total_weight += kpi['weight']
+            # Do NOT add this KPI's weight to total_weight when there are no included tasks
 
     total_progress = (total_weighted / total_weight) * 100 if total_weight > 0 else 0.0
 

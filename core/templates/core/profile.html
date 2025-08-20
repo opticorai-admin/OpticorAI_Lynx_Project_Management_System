@@ -174,11 +174,38 @@
                             </div>
                         </div>
                     </div>
-                    
-                   
-
-
-
+                    <div class="col-12 col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>Change Password</strong>
+                            </div>
+                            <div class="card-body">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {% if password_form.non_field_errors %}
+                                    <div class="alert alert-danger">
+                                        {% for err in password_form.non_field_errors %}
+                                            <div>{{ err }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-group">
+                                        <label>Current Password</label>
+                                        {{ password_form.current_password }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label>New Password</label>
+                                        {{ password_form.new_password }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Confirm New Password</label>
+                                        {{ password_form.confirm_password }}
+                                    </div>
+                                    <button type="submit" name="change_password" class="btn btn-warning">Change Password</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
 
                 </div>
             </div>

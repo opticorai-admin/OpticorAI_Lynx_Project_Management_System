@@ -211,7 +211,7 @@ class EmployeeProgress(models.Model):
         Calculate employee progress based on KPI performance
         Formula: Employee Progress Score = (Average Project KPI Score × Project KPI Weight) + (Average HSE KPI Score × HSE KPI Weight) + ...
         """
-        from django.db.models import Avg, Count
+        from django.db.models import Avg, Sum, Count
         
         # Get all active KPIs for the manager
         manager_kpis = KPI.objects.filter(
@@ -222,11 +222,12 @@ class EmployeeProgress(models.Model):
         if not manager_kpis.exists():
             return None
         
-        # Get tasks for this employee in the period
+        # Get CLOSED and evaluated tasks for this employee in the period
         tasks = Task.objects.filter(
             responsible=self.employee,
             completion_date__date__gte=self.period_start,
             completion_date__date__lte=self.period_end,
+            status='closed',
             evaluation_status='evaluated',
             final_score__isnull=False
         )
@@ -240,12 +241,12 @@ class EmployeeProgress(models.Model):
             kpi_tasks = tasks.filter(kpi=kpi)
             
             if kpi_tasks.exists():
-                # Calculate average score for this KPI
-                avg_score = kpi_tasks.aggregate(avg_score=Avg('final_score'))['avg_score']
+                # Per-task weighting: sum(final_score * weight) over tasks
                 task_count = kpi_tasks.count()
-                
-                # Calculate weighted score
-                weighted_score = (avg_score * kpi.weight) / 100
+                avg_score = kpi_tasks.aggregate(avg_score=Avg('final_score'))['avg_score']
+                sum_scores = kpi_tasks.aggregate(total_score=Sum('final_score'))['total_score'] or 0
+                # Contribution of this KPI across all its tasks (no /100 here)
+                weighted_score = float(sum_scores) * float(kpi.weight)
                 
                 # Convert tasks to JSON-serializable format
                 tasks_data = []
@@ -267,9 +268,10 @@ class EmployeeProgress(models.Model):
                 }
                 
                 total_weighted_score += weighted_score
-                total_weight += kpi.weight
+                # Denominator sums KPI weight for each task under this KPI
+                total_weight += float(kpi.weight) * float(task_count)
             else:
-                # No tasks for this KPI
+                # No CLOSED tasks for this KPI in the period; do not include its weight
                 progress_breakdown[kpi.name] = {
                     'kpi_id': kpi.id,
                     'weight': kpi.weight,
@@ -278,11 +280,10 @@ class EmployeeProgress(models.Model):
                     'weighted_score': 0,
                     'tasks': []
                 }
-                total_weight += kpi.weight
         
-        # Calculate total progress score
+        # Calculate total progress score using per-task weighting
         if total_weight > 0:
-            total_progress_score = (total_weighted_score / total_weight) * 100
+            total_progress_score = (total_weighted_score / total_weight)
         else:
             total_progress_score = 0
         
@@ -376,7 +377,6 @@ TASK_STATUS_CHOICES = [
 ]
 
 APPROVAL_STATUS_CHOICES = [
-    ('pending', 'Pending'),
     ('approved', 'Approved'),
     ('disapproved', 'Disapproved'),
 ]
@@ -600,7 +600,7 @@ class Task(models.Model):
     approval_status = models.CharField(
         max_length=15, 
         choices=APPROVAL_STATUS_CHOICES, 
-        default='pending',
+        default='disapproved',
         verbose_name="Approval Status",
         null=True, blank=True,
         db_index=True
@@ -610,6 +610,13 @@ class Task(models.Model):
         blank=True, 
         null=True,
         verbose_name="File Upload"
+    )
+    # Optional text submission provided by the employee when no file is attached
+    employee_submission = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Employee Submission",
+        help_text="Employee-provided textual submission when no file is attached"
     )
     evaluation_status = models.CharField(
         max_length=20, 

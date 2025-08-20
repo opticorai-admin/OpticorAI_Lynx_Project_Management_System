@@ -13,7 +13,7 @@
     <div class="card">
         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
-                    <strong>{{ tasks_qs.count }} Tasks</strong>
+                    <strong>{{ tasks_qs.count }} Tasks of Overall Sections</strong>
                     <div class="btn-group" role="group">
                         {% if user.user_type != 'admin' %}
                             <a href="{% url 'core:new-task' %}" class="btn btn-primary btn-sm">

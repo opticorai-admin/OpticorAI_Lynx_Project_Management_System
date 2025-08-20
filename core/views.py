@@ -431,9 +431,14 @@ class ProfileView(LoginRequiredMixin, View):
                 widget=forms.FileInput(attrs={'class': 'form-control'})
             )
         avatar_form = AvatarForm()
+        class PasswordForm(forms.Form):
+            current_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='Current Password')
+            new_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='New Password')
+            confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='Confirm New Password')
         context = {
             'profile_form': form,
             'img_form': avatar_form,
+            'password_form': PasswordForm(),
             'logged_user': user,
         }
         return render(request, 'core/profile.html', context)
@@ -452,6 +457,50 @@ class ProfileView(LoginRequiredMixin, View):
                 user.save()
                 messages.success(request, 'Profile picture updated successfully!')
                 return redirect('core:profile')
+        elif 'change_password' in request.POST:
+            class PasswordForm(forms.Form):
+                current_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='Current Password')
+                new_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='New Password')
+                confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='Confirm New Password')
+            pwd_form = PasswordForm(request.POST)
+            if pwd_form.is_valid():
+                current = pwd_form.cleaned_data['current_password']
+                new = pwd_form.cleaned_data['new_password']
+                confirm = pwd_form.cleaned_data['confirm_password']
+                if not user.check_password(current):
+                    pwd_form.add_error(None, 'Current password is incorrect.')
+                elif new != confirm:
+                    pwd_form.add_error(None, 'New passwords do not match.')
+                else:
+                    # Validate password strength using Django's validators
+                    from django.contrib.auth.password_validation import validate_password
+                    from django.core.exceptions import ValidationError as DjangoValidationError
+                    try:
+                        validate_password(new, user)
+                    except DjangoValidationError as e:
+                        # Show all validator messages
+                        for msg in e.messages:
+                            pwd_form.add_error(None, msg)
+                    else:
+                        user.set_password(new)
+                        user.save(update_fields=['password'])
+                        messages.success(request, 'Password changed successfully. Please log in again.')
+                        return redirect('core:login')
+            # If we reach here (invalid or errors), redisplay the profile page with the bound password form
+            form = UserProfileEditForm(instance=user, user=user)
+            class AvatarForm(forms.Form):
+                avatar = forms.ImageField(
+                    required=False,
+                    widget=forms.FileInput(attrs={'class': 'form-control'})
+                )
+            avatar_form = AvatarForm()
+            context = {
+                'profile_form': form,
+                'img_form': avatar_form,
+                'password_form': pwd_form,
+                'logged_user': user,
+            }
+            return render(request, 'core/profile.html', context)
         form = UserProfileEditForm(instance=user, user=user)
         class AvatarForm(forms.Form):
             avatar = forms.ImageField(
@@ -459,9 +508,14 @@ class ProfileView(LoginRequiredMixin, View):
                 widget=forms.FileInput(attrs={'class': 'form-control'})
             )
         avatar_form = AvatarForm()
+        class PasswordForm(forms.Form):
+            current_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='Current Password')
+            new_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='New Password')
+            confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label='Confirm New Password')
         context = {
             'profile_form': form,
             'img_form': avatar_form,
+            'password_form': PasswordForm(),
             'logged_user': user,
         }
         return render(request, 'core/profile.html', context)
@@ -686,6 +740,35 @@ class TaskDetailView(LoginRequiredMixin, View):
             return redirect('core:dashboard')
         context = {'task': task}
         return render(request, 'core/task_detail.html', context)
+
+class SubmitTaskTextView(LoginRequiredMixin, View):
+    def post(self, request, task_id):
+        user = request.user
+        task = get_object_or_404(Task, id=task_id)
+        if task.responsible != user:
+            messages.error(request, 'Only the responsible employee can submit this task.')
+            return redirect('core:task-detail', task_id=task_id)
+        if task.status == 'closed':
+            messages.warning(request, 'This task is already closed.')
+            return redirect('core:task-detail', task_id=task_id)
+        submission = request.POST.get('employee_submission', '').strip()
+        task.employee_submission = submission or None
+        task.save(update_fields=['employee_submission'])
+        # Notify manager (user.under_supervision) if available, else task.created_by if manager
+        try:
+            from .models import Notification
+            manager_recipient = getattr(user, 'under_supervision', None)
+            if manager_recipient:
+                Notification.objects.create(
+                    recipient=manager_recipient,
+                    sender=user,
+                    message=f"{user.get_full_name()} submitted a text update for task '{task.issue_action[:40]}...'",
+                    link=f"/projects/task/{task.id}/"
+                )
+        except Exception:
+            pass
+        messages.success(request, 'Your submission has been saved.')
+        return redirect('core:task-detail', task_id=task_id)
 
 class EditTaskView(LoginRequiredMixin, View):
     def get(self, request, task_id):
@@ -1139,6 +1222,9 @@ class KPIListView(LoginRequiredMixin, ManagerRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['search_query'] = self.request.GET.get('search', '')
+        # Provide KPI weight summary for template header widgets
+        context['total_kpi_weight'] = KPI.get_total_weight_for_manager(self.request.user)
+        context['available_weight'] = KPI.get_available_weight_for_manager(self.request.user)
         return context
 
 class KPICreateView(LoginRequiredMixin, ManagerRequiredMixin, CreateView):
@@ -1790,14 +1876,22 @@ class ProgressReportView(LoginRequiredMixin, View):
                         employee_progress_score = progress_record.total_progress_score
                         progress_period_label = f"{start_date} to {end_date}"
                 else:
-                    eval_tasks = tasks.filter(evaluation_status='evaluated', final_score__isnull=False)
+                    # Only consider CLOSED & evaluated tasks
+                    eval_tasks = tasks.filter(status='closed', evaluation_status='evaluated', final_score__isnull=False)
                     manager_kpis = KPI.objects.filter(created_by=user, is_active=True)
                     total_weighted_score = 0.0
                     total_weight = 0.0
                     for kpi in manager_kpis:
-                        avg_score = eval_tasks.filter(kpi=kpi).aggregate(avg=Avg('final_score'))['avg'] or 0
-                        total_weighted_score += float(avg_score) * float(kpi.weight)
-                        total_weight += float(kpi.weight)
+                        kpi_tasks = eval_tasks.filter(kpi=kpi)
+                        # Per-task weighting
+                        if kpi_tasks.exists():
+                            task_count = kpi_tasks.count()
+                            sum_scores = kpi_tasks.aggregate(total=Avg('final_score'))
+                            # Use Sum for scores; Avg used above mistakenly—compute correctly
+                            from django.db.models import Sum as _Sum
+                            sum_scores = kpi_tasks.aggregate(total=_Sum('final_score'))['total'] or 0.0
+                            total_weighted_score += float(sum_scores) * float(kpi.weight)
+                            total_weight += float(kpi.weight) * float(task_count)
                     if total_weight > 0:
                         employee_progress_score = round(total_weighted_score / total_weight, 2)
                         progress_period_label = "All time (based on current filters)"
@@ -1816,7 +1910,7 @@ class ProgressReportView(LoginRequiredMixin, View):
                 if employee_progress_score is not None:
                     ws.append([f"Employee Progress Score: {employee_progress_score}%"])
                 ws.append([])
-                ws.append(['Task', 'Status', 'KPI', 'Priority', 'Start Date', 'Close Date', 'Completion (%)'])
+                ws.append(['Task', 'Status', 'KPI', 'Priority', 'Start Date', 'Close Date', 'Final Score (%)'])
                 for task in tasks:
                     ws.append([
                         task.issue_action,
@@ -1825,7 +1919,7 @@ class ProgressReportView(LoginRequiredMixin, View):
                         task.priority.name if task.priority else '-',
                         str(task.start_date),
                         str(task.close_date),
-                        task.percentage_completion
+                        '' if task.final_score is None else task.final_score
                     ])
                 output = BytesIO()
                 wb.save(output)
@@ -1849,7 +1943,7 @@ class ProgressReportView(LoginRequiredMixin, View):
                 if employee_progress_score is not None:
                     p.drawString(40, y, f"Employee Progress Score: {employee_progress_score}%")
                     y -= 16
-                headers = ['Task', 'Status', 'KPI', 'Priority', 'Start Date', 'Close Date', 'Completion (%)']
+                headers = ['Task', 'Status', 'KPI', 'Priority', 'Start Date', 'Close Date', 'Final Score (%)']
                 for i, header in enumerate(headers):
                     p.drawString(40 + i*80, y, header)
                 y -= 20
@@ -1861,7 +1955,7 @@ class ProgressReportView(LoginRequiredMixin, View):
                         task.priority.name if task.priority else '-',
                         str(task.start_date),
                         str(task.close_date),
-                        str(task.percentage_completion)
+                        '-' if task.final_score is None else str(int(round(task.final_score)))
                     ]
                     for i, val in enumerate(row):
                         p.drawString(40 + i*80, y, str(val))
@@ -2034,19 +2128,21 @@ class EmployeeProgressListView(LoginRequiredMixin, View):
         safe_period_start = period_start
         safe_period_end = period_end
         
+        # Resolve compute window used for calculations/summary
+        compute_start, compute_end = period_start, period_end
+        if not compute_start or not compute_end:
+            from datetime import date
+            today = date.today()
+            compute_start = today.replace(day=1).strftime('%Y-%m-%d')
+            compute_end = today.strftime('%Y-%m-%d')
+        safe_period_start = compute_start
+        safe_period_end = compute_end
+
         if selected_employee_id:
             try:
                 selected_employee = subordinates.get(id=selected_employee_id)
                 # Get or calculate progress for the selected employee
                 from core.models import EmployeeProgress
-                # If dates are not provided, default to current month for calculation only
-                compute_start, compute_end = period_start, period_end
-                if not compute_start or not compute_end:
-                    from datetime import date
-                    today = date.today()
-                    compute_start = today.replace(day=1).strftime('%Y-%m-%d')
-                    compute_end = today.strftime('%Y-%m-%d')
-                safe_period_start, safe_period_end = compute_start, compute_end
                 progress_record = EmployeeProgress.calculate_employee_progress(
                     employee=selected_employee,
                     manager=user,
@@ -2075,6 +2171,35 @@ class EmployeeProgressListView(LoginRequiredMixin, View):
             except CustomUser.DoesNotExist:
                 selected_employee = None
         
+        # Build all-employees summary for chart/table (all-time)
+        employees_summary = []
+        employees_summary_json = []
+        manager_kpis = KPI.objects.filter(created_by=user, is_active=True)
+        for emp in subordinates:
+            emp_tasks = Task.objects.filter(
+                responsible=emp,
+                status='closed',
+                evaluation_status='evaluated',
+                final_score__isnull=False,
+            )
+            total_weighted_score = 0.0
+            total_weight = 0.0
+            for kpi in manager_kpis:
+                kpi_tasks = emp_tasks.filter(kpi=kpi)
+                if kpi_tasks.exists():
+                    from django.db.models import Sum as _Sum
+                    task_count = kpi_tasks.count()
+                    sum_scores = kpi_tasks.aggregate(total=_Sum('final_score'))['total'] or 0.0
+                    total_weighted_score += float(sum_scores) * float(kpi.weight)
+                    total_weight += float(kpi.weight) * float(task_count)
+            score = round(total_weighted_score / total_weight, 2) if total_weight > 0 else None
+            # If a specific employee is selected, restrict the summary to that employee only
+            if selected_employee and emp.id != selected_employee.id:
+                continue
+            employees_summary.append({'employee': emp, 'score': score})
+            if score is not None:
+                employees_summary_json.append({'name': emp.get_full_name(), 'score': score})
+
         # Get total KPI weight for the manager
         total_kpi_weight = KPI.get_total_weight_for_manager(user)
         available_weight = KPI.get_available_weight_for_manager(user)
@@ -2091,6 +2216,8 @@ class EmployeeProgressListView(LoginRequiredMixin, View):
             'tasks_in_period_json': tasks_in_period_json,
             'safe_period_start': safe_period_start,
             'safe_period_end': safe_period_end,
+            'employees_summary': employees_summary,
+            'employees_summary_json': employees_summary_json,
         }
         return render(request, 'core/employee_progress_list.html', context)
 
