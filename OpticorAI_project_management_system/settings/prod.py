@@ -7,9 +7,9 @@ DEBUG = False
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='dev-secret-key')
 
-ALLOWED_HOSTS = ['opticorai-project-management-system.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['opticorai-lynx-project-management-system.onrender.com', 'localhost', '127.0.0.1']
 
-CSRF_TRUSTED_ORIGINS = ['https://opticorai-project-management-system.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://opticorai-lynx-project-management-system.onrender.com']
 
 
 
