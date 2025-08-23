@@ -1,4 +1,5 @@
 """Base settings shared by all environments."""
+import dj_database_url
 from pathlib import Path
 import os
 try:
@@ -58,12 +59,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'OpticorAI_project_management_system.wsgi.application'
 
+# Database: prefer DATABASE_URL if provided; otherwise fall back to SQLite.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        env='DATABASE_URL',
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=int(os.environ.get('CONN_MAX_AGE', '600')),
+        conn_health_checks=True,
+    )
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
