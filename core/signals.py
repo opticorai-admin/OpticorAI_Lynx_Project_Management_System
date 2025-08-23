@@ -32,7 +32,7 @@ def _build_email_body(message: str, link: Optional[str]) -> str:
         if str(link).startswith("http://") or str(link).startswith("https://"):
             absolute = link
         else:
-            absolute = getattr(settings, "SITE_BASE_URL", "https://opticorai-project-management-system.onrender.com") + str(link)
+            absolute = getattr(settings, "SITE_BASE_URL", "https://opticorai-lynx-project-management-system.onrender.com") + str(link)
         lines.extend(["", f"Link: {absolute}"])
     return "\n".join(lines)
 
@@ -119,7 +119,7 @@ def send_welcome_on_user_created(sender, instance: CustomUser, created: bool, **
             "",
             "Login page:",
             (
-                (getattr(settings, "SITE_BASE_URL", "https://opticorai-project-management-system.onrender.com") + "/accounts/login/")
+                (getattr(settings, "SITE_BASE_URL", "https://opticorai-lynx-project-management-system.onrender.com") + "/accounts/login/")
             ),
         ]
         body = "\n".join(lines)
