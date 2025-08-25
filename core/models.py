@@ -998,9 +998,9 @@ class Task(models.Model):
                     link=f"/projects/task/{task.id}/"
                 )
         
-        # Update tasks to 'due' (past close date but not 100% complete)
+        # Update tasks to 'due' (past target date but not 100% complete)
         due_tasks = cls.objects.filter(
-            close_date__lt=today,
+            target_date__lt=today,
             percentage_completion__lt=100,
             status='open'
         )
@@ -1012,7 +1012,7 @@ class Task(models.Model):
             
             # Notify employee
             if task.responsible:
-                notification_message = f"Your task '{task.issue_action[:40]}...' is now due (past close date)."
+                notification_message = f"Your task '{task.issue_action[:40]}...' is now due (past target date)."
                 Notification.objects.create(
                     recipient=task.responsible,
                     sender=None,  # System notification
@@ -1020,9 +1020,9 @@ class Task(models.Model):
                     link=f"/projects/task/{task.id}/"
                 )
         
-        # Update tasks to 'open' (not past close date and not 100% complete)
+        # Update tasks to 'open' (not past target date and not 100% complete)
         open_tasks = cls.objects.filter(
-            close_date__gte=today,
+            target_date__gte=today,
             percentage_completion__lt=100,
             status='due'
         )
@@ -1034,7 +1034,7 @@ class Task(models.Model):
             
             # Notify employee
             if task.responsible:
-                notification_message = f"Your task '{task.issue_action[:40]}...' is now open (not yet due)."
+                notification_message = f"Your task '{task.issue_action[:40]}...' is now open (not yet due by target date)."
                 Notification.objects.create(
                     recipient=task.responsible,
                     sender=None,  # System notification

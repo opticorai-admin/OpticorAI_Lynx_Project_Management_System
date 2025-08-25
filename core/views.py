@@ -1630,15 +1630,15 @@ class UpdateTaskStatusesView(LoginRequiredMixin, View):
             task.save()
             closed += 1
             total_updated += 1
-        # Due tasks
-        due_tasks = tasks.filter(close_date__lt=today, percentage_completion__lt=100, status='open')
+        # Due tasks (past target date)
+        due_tasks = tasks.filter(target_date__lt=today, percentage_completion__lt=100, status='open')
         for task in due_tasks:
             task.status = 'due'
             task.save()
             due += 1
             total_updated += 1
-        # Open tasks
-        open_tasks = tasks.filter(close_date__gte=today, percentage_completion__lt=100, status='due')
+        # Open tasks (not past target date)
+        open_tasks = tasks.filter(target_date__gte=today, percentage_completion__lt=100, status='due')
         for task in open_tasks:
             task.status = 'open'
             task.save()
