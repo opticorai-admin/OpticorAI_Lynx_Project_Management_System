@@ -82,6 +82,10 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Business-local timezone for date-based business rules (e.g., task due checks)
+# Example: 'Asia/Muscat' or leave unset to use default local timezone
+BUSINESS_TIMEZONE = os.environ.get('BUSINESS_TIMEZONE', '') or None
+
 # Static/media
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
