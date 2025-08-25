@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from datetime import date
+from django.utils import timezone
 from django.templatetags.static import static
 from .managers import TaskQuerySet
 import os
@@ -715,7 +716,7 @@ class Task(models.Model):
         # Auto-update status based on dates and completion
         if self.percentage_completion >= 100:
             self.status = 'closed'
-        elif self.target_date and self.target_date < date.today():
+        elif self.target_date and self.target_date < timezone.localdate():
             self.status = 'due'
         else:
             self.status = 'open'
@@ -966,7 +967,7 @@ class Task(models.Model):
         Update statuses for all tasks based on current date and completion
         Returns a dictionary with update statistics
         """
-        today = date.today()
+        today = timezone.localdate()
         updates = {
             'closed': 0,
             'due': 0,

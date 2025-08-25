@@ -1592,9 +1592,10 @@ class UpdateTaskStatusesView(LoginRequiredMixin, View):
         open_tasks = tasks.filter(status='open').count()
         due_tasks = tasks.filter(status='due').count()
         closed_tasks = tasks.filter(status='closed').count()
-        today = date.today()
+        from django.utils import timezone
+        today = timezone.localdate()
         overdue_tasks = tasks.filter(
-            close_date__lt=today,
+            target_date__lt=today,
             percentage_completion__lt=100,
             status='open'
         )
