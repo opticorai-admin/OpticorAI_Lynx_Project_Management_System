@@ -770,7 +770,7 @@ class Task(models.Model):
     @property
     def is_overdue(self):
         """Check if task is overdue"""
-        return self.target_date and self.target_date < date.today() and self.status != 'closed'
+        return self.target_date and self.target_date < business_localdate() and self.status != 'closed'
 
     @property
     def can_be_approved_by(self):
