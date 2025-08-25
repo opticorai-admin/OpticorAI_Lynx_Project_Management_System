@@ -10,6 +10,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from core.utils.dates import business_localdate
 from datetime import date
 import os
 from django.conf import settings
@@ -159,6 +160,19 @@ class IndexView(View):
 class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
         user = request.user
+        # Lightweight daily refresh of task statuses to keep dashboards accurate
+        try:
+            from django.utils import timezone
+            from .models import Task
+            today = business_localdate()
+            guard_key = f"task_status_auto_refresh:{today.isoformat()}"
+            if cache.get(guard_key) is None:
+                # Run once per day across all users; cache TTL ~ 24h
+                Task.update_all_statuses()
+                cache.set(guard_key, True, 60 * 60 * 24)
+        except Exception:
+            # Never block dashboard if refresh fails
+            pass
         if user.user_type == 'admin':
             users = CustomUser.objects.exclude(user_type='admin')
             managers = CustomUser.objects.filter(user_type='manager')
@@ -1593,7 +1607,7 @@ class UpdateTaskStatusesView(LoginRequiredMixin, View):
         due_tasks = tasks.filter(status='due').count()
         closed_tasks = tasks.filter(status='closed').count()
         from django.utils import timezone
-        today = timezone.localdate()
+        today = business_localdate()
         overdue_tasks = tasks.filter(
             target_date__lt=today,
             percentage_completion__lt=100,

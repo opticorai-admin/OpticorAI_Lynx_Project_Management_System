@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from django.utils import timezone
+from core.utils.dates import business_localdate
 from typing import Optional, Dict, Any
 import logging
 
@@ -32,7 +33,7 @@ class EvaluationSettings:
 def compute_status(percentage_completion: Optional[float], target_date: Optional[date]) -> str:
     if (percentage_completion or 0) >= 100:
         return 'closed'
-    if target_date and target_date < timezone.localdate():
+    if target_date and target_date < business_localdate():
         return 'due'
     return 'open'
 
