@@ -21,12 +21,15 @@ from django.db import models
 from openpyxl import Workbook
 from reportlab.pdfgen import canvas
 from io import BytesIO
+from calendar import monthrange
 from django.db.models.functions import Concat
 from django.db.models import Value as V, Avg
 from django.core.cache import cache
 from django.db.models import Case, When, IntegerField, Count
 from django.db.models import Count, Case, When, IntegerField
 from .models import CustomUser, Task, KPI, QualityType, Notification, TaskPriorityType, TaskEvaluationSettings, EmployeeProgress
+from django.utils.timezone import make_aware
+from datetime import datetime, timedelta
 from .forms import (
     EmailLoginForm, TwoFactorForm, UserRegistrationForm, UserProfileEditForm, 
     TaskRegistrationForm, TaskEditForm, KPIForm, QualityTypeForm,
@@ -805,7 +808,12 @@ class SubmitTaskTextView(LoginRequiredMixin, View):
             return redirect('core:task-detail', task_id=task_id)
         submission = request.POST.get('employee_submission', '').strip()
         task.employee_submission = submission or None
-        task.save(update_fields=['employee_submission'])
+        try:
+            task.employee_submitted_at = timezone.now()
+            update_fields = ['employee_submission', 'employee_submitted_at']
+        except Exception:
+            update_fields = ['employee_submission']
+        task.save(update_fields=update_fields)
         # Notify manager (user.under_supervision) if available, else task.created_by if manager
         try:
             from .models import Notification
@@ -821,6 +829,124 @@ class SubmitTaskTextView(LoginRequiredMixin, View):
             pass
         messages.success(request, 'Your submission has been saved.')
         return redirect('core:task-detail', task_id=task_id)
+
+class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
+    def get(self, request):
+        user = request.user
+        if user.user_type != 'manager':
+            messages.error(request, 'Only managers can access monthly statistics.')
+            return redirect('core:dashboard')
+
+        # Filters
+        employee_query = request.GET.get('employee', '').strip()
+        month = request.GET.get('month')  # format: YYYY-MM
+        upto = request.GET.get('upto', '')  # if 'ytd', include from Jan 1 to end of current month
+
+        subordinates = CustomUser.objects.filter(under_supervision=user, user_type='employee')
+        employees = subordinates
+        if employee_query:
+            # Support searching by full name, username, or email
+            try:
+                from django.db.models.functions import Concat
+                from django.db.models import Value as V
+                employees = employees.annotate(
+                    full_name=Concat('first_name', V(' '), 'last_name')
+                ).filter(
+                    Q(full_name__icontains=employee_query) |
+                    Q(first_name__icontains=employee_query) |
+                    Q(last_name__icontains=employee_query) |
+                    Q(username__icontains=employee_query) |
+                    Q(email__icontains=employee_query)
+                )
+            except Exception:
+                employees = employees.filter(
+                    Q(first_name__icontains=employee_query) |
+                    Q(last_name__icontains=employee_query) |
+                    Q(username__icontains=employee_query) |
+                    Q(email__icontains=employee_query)
+                )
+
+        # Determine date range
+        today = business_localdate()
+        if month:
+            try:
+                year, mon = map(int, month.split('-'))
+                start_date = date(year, mon, 1)
+                last_day = monthrange(year, mon)[1]
+                end_date = date(year, mon, last_day)
+            except Exception:
+                start_date = date(today.year, today.month, 1)
+                last_day = monthrange(today.year, today.month)[1]
+                end_date = date(today.year, today.month, last_day)
+        elif upto == 'ytd':
+            start_date = date(today.year, 1, 1)
+            end_date = today
+        else:
+            start_date = date(today.year, today.month, 1)
+            last_day = monthrange(today.year, today.month)[1]
+            end_date = date(today.year, today.month, last_day)
+
+        # Build stats per employee
+        stats = []
+        for emp in employees.order_by('first_name', 'last_name', 'username'):
+            # Assigned within period: by created_date window
+            assigned_qs = Task.objects.filter(
+                responsible=emp
+            ).filter(
+                Q(created_date__date__gte=start_date, created_date__date__lte=end_date) |
+                Q(target_date__gte=start_date, target_date__lte=end_date)
+            )
+            total_assigned = assigned_qs.count()
+
+            # Completed within period: by close_date window
+            completed_qs = Task.objects.filter(
+                responsible=emp,
+                status='closed'
+            ).filter(
+                Q(close_date__gte=start_date, close_date__lte=end_date) |
+                Q(completion_date__date__gte=start_date, completion_date__date__lte=end_date)
+            )
+            total_completed = completed_qs.count()
+
+            # Priority breakdown from assigned tasks in the period
+            high = assigned_qs.filter(priority__code='high').count()
+            medium = assigned_qs.filter(priority__code='medium').count()
+            low = assigned_qs.filter(priority__code='low').count()
+
+            completion_rate = round((total_completed / total_assigned) * 100, 2) if total_assigned else 0.0
+
+            # Timeliness: days before/after target date for tasks completed in the period
+            timeliness_days = []
+            for t in completed_qs.select_related(None).only('completion_date', 'target_date'):
+                if t.completion_date and t.target_date:
+                    delta = (t.completion_date - datetime.combine(t.target_date, datetime.min.time()).replace(tzinfo=t.completion_date.tzinfo)).days
+                    # Convert to date-based difference to avoid timezone issues
+                    delta = (t.completion_date.date() - t.target_date).days
+                    timeliness_days.append(delta)
+            avg_timeliness = round(sum(timeliness_days)/len(timeliness_days), 2) if timeliness_days else None
+
+            stats.append({
+                'employee': emp,
+                'total_assigned': total_assigned,
+                'total_completed': total_completed,
+                'priority_high': high,
+                'priority_medium': medium,
+                'priority_low': low,
+                'completion_rate': completion_rate,
+                'avg_timeliness_days': avg_timeliness,
+            })
+
+        context = {
+            'subordinates': subordinates,
+            'employees': employees,
+            'stats': stats,
+            'filter_employee_query': employee_query,
+            'filter_month': month,
+            'filter_upto': upto,
+            'start_date': start_date,
+            'end_date': end_date,
+        }
+        return render(request, 'core/monthly_employee_stats.html', context)
 
 class EditTaskView(LoginRequiredMixin, View):
     def get(self, request, task_id):
@@ -1982,41 +2108,64 @@ class ProgressReportView(LoginRequiredMixin, View):
                 response['Content-Disposition'] = f'attachment; filename={filename}'
                 return response
             elif export_type == 'pdf':
-                # PDF export using reportlab
+                # PDF export using reportlab with wrapping
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.styles import getSampleStyleSheet
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+                from reportlab.lib import colors
+                from reportlab.lib.units import inch
+                from reportlab.lib.enums import TA_LEFT
+
                 buffer = BytesIO()
-                p = canvas.Canvas(buffer)
-                p.setFont('Helvetica-Bold', 14)
-                p.drawString(40, 800, f"Progress Report for {selected_employee.get_full_name()}")
-                p.setFont('Helvetica', 10)
-                y = 780
-                # Summary lines
+                doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
+                styles = getSampleStyleSheet()
+                styles['Normal'].fontName = 'Helvetica'
+                styles['Normal'].fontSize = 9
+                styles['Heading1'].fontName = 'Helvetica-Bold'
+                story = []
+
+                title = Paragraph(f"Progress Report for {selected_employee.get_full_name()}", styles['Heading1'])
+                story.append(title)
                 if progress_period_label or (start_date and end_date):
-                    p.drawString(40, y, f"Period: {progress_period_label or f'{start_date} to {end_date}'}")
-                    y -= 16
+                    period_text = f"Period: {progress_period_label or f'{start_date} to {end_date}'}"
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph(period_text, styles['Normal']))
                 if employee_progress_score is not None:
-                    p.drawString(40, y, f"Employee Progress Score: {employee_progress_score}%")
-                    y -= 16
-                headers = ['Task', 'Status', 'KPI', 'Priority', 'Start Date', 'Close Date', 'Final Score (%)']
-                for i, header in enumerate(headers):
-                    p.drawString(40 + i*80, y, header)
-                y -= 20
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph(f"Employee Progress Score: {employee_progress_score}%", styles['Normal']))
+                story.append(Spacer(1, 12))
+
+                data = [[
+                    Paragraph('Task', styles['Normal']),
+                    Paragraph('Status', styles['Normal']),
+                    Paragraph('KPI', styles['Normal']),
+                    Paragraph('Priority', styles['Normal']),
+                    Paragraph('Start Date', styles['Normal']),
+                    Paragraph('Close Date', styles['Normal']),
+                    Paragraph('Final Score (%)', styles['Normal']),
+                ]]
                 for task in tasks:
-                    row = [
-                        (task.issue_action or '')[:15],
-                        task.get_status_display(),
-                        str(task.kpi) if task.kpi else '',
-                        task.priority.name if task.priority else '-',
-                        str(task.start_date),
-                        str(task.close_date),
-                        '-' if task.final_score is None else str(int(round(task.final_score)))
-                    ]
-                    for i, val in enumerate(row):
-                        p.drawString(40 + i*80, y, str(val))
-                    y -= 18
-                    if y < 40:
-                        p.showPage()
-                        y = 800
-                p.save()
+                    data.append([
+                        Paragraph(task.issue_action or '', styles['Normal']),
+                        Paragraph(task.get_status_display(), styles['Normal']),
+                        Paragraph(str(task.kpi) if task.kpi else '', styles['Normal']),
+                        Paragraph(task.priority.name if task.priority else '-', styles['Normal']),
+                        Paragraph(str(task.start_date), styles['Normal']),
+                        Paragraph(str(task.close_date), styles['Normal']),
+                        Paragraph('-' if task.final_score is None else str(int(round(task.final_score))), styles['Normal']),
+                    ])
+
+                table = Table(data, repeatRows=1, colWidths=[2.5*inch, 0.9*inch, 1.0*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1.0*inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,-1), 9),
+                    ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
+                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ]))
+                story.append(table)
+
+                doc.build(story)
                 buffer.seek(0)
                 filename = f"progress_report_{selected_employee.id}.pdf"
                 response = HttpResponse(buffer, content_type='application/pdf')

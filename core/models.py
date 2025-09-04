@@ -620,6 +620,12 @@ class Task(models.Model):
         verbose_name="Employee Submission",
         help_text="Employee-provided textual submission when no file is attached"
     )
+    employee_submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Employee Submission Timestamp",
+        help_text="When the employee last submitted content for manager evaluation/approval"
+    )
     evaluation_status = models.CharField(
         max_length=20, 
         choices=EVALUATION_STATUS_CHOICES, 

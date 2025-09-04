@@ -77,6 +77,9 @@ urlpatterns = [
 
     # --- Progress Report (Manager Only) ---
     path('settings/progress-report/', views.ProgressReportView.as_view(), name='progress-report'),
+
+    # --- Monthly Employee Stats (Manager Only) ---
+    path('settings/monthly-stats/', views.MonthlyEmployeeStatsView.as_view(), name='monthly-employee-stats'),
 ]
 
 if settings.DEBUG:
