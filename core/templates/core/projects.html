@@ -210,7 +210,7 @@
                                         </a>
                                     {% endif %}
                                     {% if task|can_user_upload_file:user %}
-                                        <a href="{% url 'core:upload-task-file' task.id %}" class="btn btn-sm btn-outline-success">
+                                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-success">
                                             <i class="fa fa-upload"></i>
                                         </a>
                                     {% endif %}

@@ -1,0 +1,46 @@
+{% comment %}
+Render Django messages inside a Bootstrap modal popup.
+This replaces inline alerts for a clearer, non-intrusive notification.
+{% endcomment %}
+
+{% if messages %}
+<div class="modal fade" id="messageModal" tabindex="-1" role="dialog" aria-labelledby="messageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="messageModalLabel">Notification</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-unstyled mb-0">
+          {% for message in messages %}
+          <li class="mb-2">
+            {% if message.tags %}<span class="badge badge-{{ message.tags }} mr-2">{{ message.tags|title }}</span>{% endif %}
+            <span>{{ message }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<script>
+  (function(){
+    try {
+      if (window.jQuery && typeof jQuery.fn.modal === 'function') {
+        jQuery(function(){
+          jQuery('#messageModal').modal('show');
+        });
+      }
+    } catch (e) { /* no-op */ }
+  })();
+</script>
+{% endif %}
+
+

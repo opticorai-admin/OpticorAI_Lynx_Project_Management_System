@@ -827,7 +827,7 @@ class SubmitTaskTextView(LoginRequiredMixin, View):
                 )
         except Exception:
             pass
-        messages.success(request, 'Your submission has been saved.')
+        messages.success(request, 'Your text was submitted successfully!')
         return redirect('core:task-detail', task_id=task_id)
 
 class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
@@ -842,7 +842,8 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
         month = request.GET.get('month')  # format: YYYY-MM
         upto = request.GET.get('upto', '')  # if 'ytd', include from Jan 1 to end of current month
 
-        subordinates = CustomUser.objects.filter(under_supervision=user, user_type='employee')
+        # Include both employees and subordinate managers under this manager
+        subordinates = CustomUser.objects.filter(under_supervision=user).exclude(user_type='admin')
         employees = subordinates
         if employee_query:
             # Support searching by full name, username, or email
@@ -865,6 +866,9 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     Q(username__icontains=employee_query) |
                     Q(email__icontains=employee_query)
                 )
+            # If no match, gracefully fall back to the full team so the page is not empty
+            if not employees.exists():
+                employees = subordinates
 
         # Determine date range
         today = business_localdate()
@@ -886,20 +890,41 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             last_day = monthrange(today.year, today.month)[1]
             end_date = date(today.year, today.month, last_day)
 
+        # Scope once to team tasks to avoid missing data and reduce queries
+        team_tasks = Task.objects.select_related('responsible', 'priority').filter(responsible__in=subordinates)
+        # Enforce exact-month dataset: when a specific month is selected (not YTD),
+        # restrict to tasks created in that month so previous months do not appear.
+        if month and upto != 'ytd':
+            team_tasks = team_tasks.filter(
+                created_date__date__gte=start_date,
+                created_date__date__lte=end_date,
+            )
+
         # Build stats per employee
         stats = []
+        aggregate_open = aggregate_closed = aggregate_due = 0
         for emp in employees.order_by('first_name', 'last_name', 'username'):
-            # Assigned within period: by created_date window
-            assigned_qs = Task.objects.filter(
+            # Assigned within period: include any task that touches the period
+            # - created within the window OR
+            # - target date in the window OR
+            # - closed within the window OR
+            # - active during the window (created before end and not closed before start)
+            assigned_qs = team_tasks.filter(
                 responsible=emp
             ).filter(
                 Q(created_date__date__gte=start_date, created_date__date__lte=end_date) |
-                Q(target_date__gte=start_date, target_date__lte=end_date)
+                Q(target_date__gte=start_date, target_date__lte=end_date) |
+                Q(close_date__gte=start_date, close_date__lte=end_date) |
+                Q(completion_date__date__gte=start_date, completion_date__date__lte=end_date) |
+                (
+                    Q(created_date__date__lte=end_date) &
+                    (Q(close_date__isnull=True) | Q(close_date__gte=start_date) | Q(completion_date__date__gte=start_date))
+                )
             )
             total_assigned = assigned_qs.count()
 
             # Completed within period: by close_date window
-            completed_qs = Task.objects.filter(
+            completed_qs = team_tasks.filter(
                 responsible=emp,
                 status='closed'
             ).filter(
@@ -925,6 +950,15 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     timeliness_days.append(delta)
             avg_timeliness = round(sum(timeliness_days)/len(timeliness_days), 2) if timeliness_days else None
 
+            # Status breakdown for assigned tasks in the period
+            open_count = assigned_qs.filter(status='open').count()
+            closed_count = assigned_qs.filter(status='closed').count()
+            due_count = assigned_qs.filter(status='due').count()
+
+            aggregate_open += open_count
+            aggregate_closed += closed_count
+            aggregate_due += due_count
+
             stats.append({
                 'employee': emp,
                 'total_assigned': total_assigned,
@@ -934,7 +968,253 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 'priority_low': low,
                 'completion_rate': completion_rate,
                 'avg_timeliness_days': avg_timeliness,
+                'open_count': open_count,
+                'closed_count': closed_count,
+                'due_count': due_count,
             })
+
+        # Chart data for overall status distribution and enhanced visuals
+        import json as _json
+        chart_labels = ['Open', 'Closed', 'Due']
+        chart_values = [aggregate_open, aggregate_closed, aggregate_due]
+        chart_data_json = _json.dumps({
+            'labels': chart_labels,
+            'datasets': [{
+                'label': 'Tasks',
+                'data': chart_values,
+                'backgroundColor': ['#36A2EB', '#4BC0C0', '#FFCE56'],
+                'borderColor': ['#1E88E5', '#26A69A', '#FBC02D'],
+                'borderWidth': 1,
+            }]
+        })
+
+        # Aggregated priority doughnut dataset (High/Medium/Low across the selected employees)
+        total_high = sum(r['priority_high'] for r in stats) if stats else 0
+        total_medium = sum(r['priority_medium'] for r in stats) if stats else 0
+        total_low = sum(r['priority_low'] for r in stats) if stats else 0
+        priority_chart_json = _json.dumps({
+            'labels': ['High', 'Medium', 'Low'],
+            'datasets': [{
+                'data': [total_high, total_medium, total_low],
+                'backgroundColor': ['#e74c3c', '#f1c40f', '#2ecc71'],
+                'borderColor': ['#c0392b', '#d4ac0d', '#27ae60'],
+                'borderWidth': 1,
+            }]
+        })
+
+        # Per-employee stacked bar for Assigned/Completed/Open/Closed/Due
+        employee_labels = []
+        assigned_values = []
+        completed_values = []
+        open_values = []
+        closed_values = []
+        due_values = []
+        for row in stats:
+            emp = row['employee']
+            employee_labels.append(emp.get_full_name() or emp.username)
+            assigned_values.append(row['total_assigned'])
+            completed_values.append(row['total_completed'])
+            open_values.append(row['open_count'])
+            closed_values.append(row['closed_count'])
+            due_values.append(row['due_count'])
+        employee_status_chart_json = _json.dumps({
+            'labels': employee_labels,
+            'datasets': [
+                {
+                    'label': 'Assigned',
+                    'data': assigned_values,
+                    'backgroundColor': '#95a5a6',
+                    'borderColor': '#7f8c8d',
+                    'borderWidth': 1,
+                },
+                {
+                    'label': 'Completed',
+                    'data': completed_values,
+                    'backgroundColor': '#4BC0C0',
+                    'borderColor': '#26A69A',
+                    'borderWidth': 1,
+                },
+                {
+                    'label': 'Open',
+                    'data': open_values,
+                    'backgroundColor': '#36A2EB',
+                    'borderColor': '#1E88E5',
+                    'borderWidth': 1,
+                },
+                {
+                    'label': 'Closed',
+                    'data': closed_values,
+                    'backgroundColor': '#2ecc71',
+                    'borderColor': '#27ae60',
+                    'borderWidth': 1,
+                },
+                {
+                    'label': 'Due',
+                    'data': due_values,
+                    'backgroundColor': '#FFCE56',
+                    'borderColor': '#FBC02D',
+                    'borderWidth': 1,
+                },
+            ]
+        })
+
+        # Optional export (excel/pdf)
+        export_type = request.GET.get('export', '').strip().lower()
+        if export_type in ('excel', 'pdf'):
+            # Flatten stats into rows
+            rows = []
+            for row in stats:
+                emp = row['employee']
+                rows.append([
+                    emp.get_full_name() or emp.username,
+                    row['total_assigned'],
+                    row['total_completed'],
+                    row['open_count'],
+                    row['closed_count'],
+                    row['due_count'],
+                    row['priority_high'],
+                    row['priority_medium'],
+                    row['priority_low'],
+                    f"{row['completion_rate']}%",
+                    '-' if row['avg_timeliness_days'] is None else row['avg_timeliness_days'],
+                ])
+
+            period_label = f"{start_date} — {end_date}"
+
+            if export_type == 'excel':
+                wb = Workbook()
+                ws = wb.active
+                ws.title = 'Monthly Stats'
+                ws.append([f"Monthly Employee Statistics ({period_label})"])
+                ws.append([])
+                headers = ['Employee', 'Total Assigned', 'Completed', 'Open', 'Closed', 'Due', 'High', 'Medium', 'Low', 'Completion Rate', 'Timeliness (avg days vs target)']
+                ws.append(headers)
+                for r in rows:
+                    ws.append(r)
+                # Totals row
+                ws.append([])
+                ws.append(['Totals', sum(x[1] for x in rows), sum(x[2] for x in rows), aggregate_open, aggregate_closed, aggregate_due, sum(x[6] for x in rows), sum(x[7] for x in rows), sum(x[8] for x in rows), '', ''])
+                output = BytesIO()
+                wb.save(output)
+                output.seek(0)
+                response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response['Content-Disposition'] = f'attachment; filename=monthly_stats_{start_date}_{end_date}.xlsx'
+                return response
+            else:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
+                from reportlab.lib import colors
+                from reportlab.lib.units import inch
+
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
+                styles = getSampleStyleSheet()
+                # Ensure consistent readable fonts and enable wrapping via Paragraphs
+                styles['Normal'].fontName = 'Helvetica'
+                styles['Normal'].fontSize = 9
+                styles['Heading1'].fontName = 'Helvetica-Bold'
+                brand_style = ParagraphStyle(
+                    'Brand',
+                    parent=styles['Heading1'],
+                    alignment=1,
+                    textColor=colors.HexColor('#0B5ED7'),
+                    fontName='Helvetica-Bold',
+                    fontSize=20,
+                    leading=24,
+                )
+                title_style = ParagraphStyle(
+                    'CenterTitle',
+                    parent=styles['Heading2'],
+                    alignment=1,
+                    textColor=colors.HexColor('#2c3e50'),
+                    spaceBefore=2,
+                    spaceAfter=6,
+                )
+
+                story = []
+                # Branding: Lynex logo and name (centered, optional)
+                try:
+                    from django.contrib.staticfiles import finders as _static_finders
+                    logo_path = _static_finders.find('core/img/logos/title.jpg')
+                    if not logo_path:
+                        # Fallback to app static path if finders not available in this context
+                        from django.conf import settings as _settings
+                        logo_path = os.path.join(_settings.BASE_DIR, 'OpticorAI_project_management_system', 'core', 'static', 'core', 'img', 'logos', 'title.jpg')
+                    if logo_path and os.path.isfile(logo_path):
+                        story.append(Image(logo_path, width=160, height=42, hAlign='CENTER'))
+                        story.append(Spacer(1, 4))
+                except Exception:
+                    pass
+                story.append(Paragraph('Lynex', brand_style))
+                story.append(HRFlowable(width='30%', thickness=1, color=colors.HexColor('#0B5ED7'), spaceBefore=4, spaceAfter=8, hAlign='CENTER'))
+                story.append(Paragraph('Monthly Employee Statistics', title_style))
+                story.append(Paragraph(f'Period: {period_label}', styles['Normal']))
+                story.append(Spacer(1, 8))
+
+                # Build header with Paragraphs to allow wrapping
+                header_cells = [
+                    'Employee',
+                    'Total Assigned',
+                    'Completed',
+                    'Open',
+                    'Closed',
+                    'Due',
+                    'High',
+                    'Medium',
+                    'Low',
+                    'Completion Rate',
+                    'Timeliness (avg days vs target)',
+                ]
+                data = [[Paragraph(text, styles['Normal']) for text in header_cells]]
+
+                # Convert each data cell to Paragraph to ensure long values wrap
+                for r in rows:
+                    data.append([Paragraph(str(c), styles['Normal']) for c in r])
+
+                table = Table(
+                    data,
+                    repeatRows=1,
+                    colWidths=[
+                        1.6*inch,  # Employee
+                        0.55*inch, # Total Assigned
+                        0.55*inch, # Completed
+                        0.45*inch, # Open
+                        0.45*inch, # Closed
+                        0.45*inch, # Due
+                        0.45*inch, # High
+                        0.45*inch, # Medium
+                        0.45*inch, # Low
+                        0.8*inch,  # Completion Rate
+                        1.0*inch,  # Timeliness
+                    ],
+                )
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
+                    ('FONTSIZE', (0,0), (-1,-1), 9),
+                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                    ('ALIGN', (0,0), (-1,0), 'CENTER'),
+                    ('ALIGN', (1,1), (-1,-1), 'CENTER'),
+                    ('ALIGN', (0,1), (0,-1), 'LEFT'),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
+                ]))
+                story.append(table)
+
+                doc.build(story)
+                buffer.seek(0)
+                response = HttpResponse(buffer, content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename=monthly_stats_{start_date}_{end_date}.pdf'
+                return response
+
+        # Provide simple card counters expected by the template without renaming template vars
+        # Card 1 label says "Total Tasks" but template reads `open_tasks`; map to total tasks
+        total_tasks = (aggregate_open or 0) + (aggregate_closed or 0) + (aggregate_due or 0)
+        # Card 2 label says "Total Closed Tasks" but template reads `due_tasks`; map to closed count
+        closed_tasks = aggregate_closed or 0
 
         context = {
             'subordinates': subordinates,
@@ -945,6 +1225,17 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             'filter_upto': upto,
             'start_date': start_date,
             'end_date': end_date,
+            'chart_data_json': chart_data_json,
+            'priority_chart_json': priority_chart_json,
+            'employee_status_chart_json': employee_status_chart_json,
+            'aggregate_open': aggregate_open,
+            'aggregate_closed': aggregate_closed,
+            'aggregate_due': aggregate_due,
+            # Backward-compat values for existing cards in the template
+            'open_tasks': total_tasks,
+            'due_tasks': closed_tasks,
+            'total_tasks': total_tasks,
+            'closed_tasks': closed_tasks,
         }
         return render(request, 'core/monthly_employee_stats.html', context)
 
@@ -2110,8 +2401,8 @@ class ProgressReportView(LoginRequiredMixin, View):
             elif export_type == 'pdf':
                 # PDF export using reportlab with wrapping
                 from reportlab.lib.pagesizes import A4
-                from reportlab.lib.styles import getSampleStyleSheet
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
                 from reportlab.lib import colors
                 from reportlab.lib.units import inch
                 from reportlab.lib.enums import TA_LEFT
@@ -2122,9 +2413,41 @@ class ProgressReportView(LoginRequiredMixin, View):
                 styles['Normal'].fontName = 'Helvetica'
                 styles['Normal'].fontSize = 9
                 styles['Heading1'].fontName = 'Helvetica-Bold'
+                brand_style = ParagraphStyle(
+                    'Brand',
+                    parent=styles['Heading1'],
+                    alignment=1,
+                    textColor=colors.HexColor('#0B5ED7'),
+                    fontName='Helvetica-Bold',
+                    fontSize=20,
+                    leading=24,
+                )
+                title_style = ParagraphStyle(
+                    'CenterTitle',
+                    parent=styles['Heading2'],
+                    alignment=1,
+                    textColor=colors.HexColor('#2c3e50'),
+                    spaceBefore=2,
+                    spaceAfter=6,
+                )
                 story = []
 
-                title = Paragraph(f"Progress Report for {selected_employee.get_full_name()}", styles['Heading1'])
+                # Branding: Lynex logo and name (centered, optional)
+                try:
+                    from django.contrib.staticfiles import finders as _static_finders
+                    _logo = _static_finders.find('core/img/logos/title.jpg')
+                    if not _logo:
+                        from django.conf import settings as _settings
+                        _logo = os.path.join(_settings.BASE_DIR, 'OpticorAI_project_management_system', 'core', 'static', 'core', 'img', 'logos', 'title.jpg')
+                    if _logo and os.path.isfile(_logo):
+                        story.append(Image(_logo, width=160, height=42, hAlign='CENTER'))
+                        story.append(Spacer(1, 4))
+                except Exception:
+                    pass
+
+                story.append(Paragraph('Lynex', brand_style))
+                story.append(HRFlowable(width='30%', thickness=1, color=colors.HexColor('#0B5ED7'), spaceBefore=4, spaceAfter=8, hAlign='CENTER'))
+                title = Paragraph(f"Progress Report for {selected_employee.get_full_name()}", title_style)
                 story.append(title)
                 if progress_period_label or (start_date and end_date):
                     period_text = f"Period: {progress_period_label or f'{start_date} to {end_date}'}"
