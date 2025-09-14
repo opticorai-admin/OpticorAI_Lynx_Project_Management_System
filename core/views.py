@@ -982,11 +982,43 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             'datasets': [{
                 'label': 'Tasks',
                 'data': chart_values,
-                'backgroundColor': ['#36A2EB', '#4BC0C0', '#FFCE56'],
-                'borderColor': ['#1E88E5', '#26A69A', '#FBC02D'],
+                # Open, Closed, Due -> Closed green, Due red
+                'backgroundColor': ['#36A2EB', '#2ecc71', '#e74c3c'],
+                'borderColor': ['#1E88E5', '#27ae60', '#c0392b'],
                 'borderWidth': 1,
             }]
         })
+
+        # Separate monthly trend (tasks created per month YTD), one series per employee
+        try:
+            from calendar import month_abbr
+            today_for_trend = business_localdate()
+            months_range = list(range(1, today_for_trend.month + 1))
+            trend_labels = [month_abbr[m] for m in months_range]
+            trend_datasets = []
+
+            for emp in employees.order_by('first_name', 'last_name', 'username'):
+                monthly_counts = []
+                for m in months_range:
+                    m_start = date(today_for_trend.year, m, 1)
+                    m_end = date(today_for_trend.year, m, monthrange(today_for_trend.year, m)[1])
+                    count = Task.objects.filter(
+                        responsible=emp,
+                        created_date__date__gte=m_start,
+                        created_date__date__lte=m_end,
+                    ).count()
+                    monthly_counts.append(count)
+                trend_datasets.append({
+                    'label': (emp.get_full_name() or emp.username),
+                    'data': monthly_counts,
+                })
+
+            monthly_trend_chart_json = _json.dumps({
+                'labels': trend_labels,
+                'datasets': trend_datasets,
+            })
+        except Exception:
+            monthly_trend_chart_json = _json.dumps({'labels': [], 'datasets': []})
 
         # Aggregated priority doughnut dataset (High/Medium/Low across the selected employees)
         total_high = sum(r['priority_high'] for r in stats) if stats else 0
@@ -1051,12 +1083,81 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 {
                     'label': 'Due',
                     'data': due_values,
-                    'backgroundColor': '#FFCE56',
-                    'borderColor': '#FBC02D',
+                    'backgroundColor': '#e74c3c',
+                    'borderColor': '#c0392b',
                     'borderWidth': 1,
                 },
             ]
         })
+
+        # If exactly one employee is selected, switch employee stacked chart to months on x-axis
+        try:
+            single_emp = None
+            try:
+                emp_count_for_months = employees.count()
+            except Exception:
+                emp_count_for_months = len(list(employees))
+            if emp_count_for_months == 1:
+                single_emp = employees.first() if hasattr(employees, 'first') else list(employees)[0]
+            if single_emp:
+                from calendar import month_abbr
+                trend_year = start_date.year
+                end_month = end_date.month if end_date.year == trend_year else 12
+                months_range = list(range(1, end_month + 1))
+                month_labels = [month_abbr[m] for m in months_range]
+                # Build per-month counts by status
+                monthly_assigned = []
+                monthly_completed = []
+                monthly_open = []
+                monthly_closed = []
+                monthly_due = []
+                for m in months_range:
+                    m_start = date(trend_year, m, 1)
+                    m_end = date(trend_year, m, monthrange(trend_year, m)[1])
+                    assigned_cnt = Task.objects.filter(
+                        responsible=single_emp,
+                        created_date__date__gte=m_start,
+                        created_date__date__lte=m_end,
+                    ).count()
+                    completed_cnt = Task.objects.filter(
+                        responsible=single_emp,
+                        status='closed'
+                    ).filter(
+                        Q(close_date__gte=m_start, close_date__lte=m_end) |
+                        Q(completion_date__date__gte=m_start, completion_date__date__lte=m_end)
+                    ).count()
+                    open_cnt = Task.objects.filter(
+                        responsible=single_emp,
+                        status='open',
+                        created_date__date__gte=m_start,
+                        created_date__date__lte=m_end,
+                    ).count()
+                    closed_cnt = completed_cnt
+                    due_cnt = Task.objects.filter(
+                        responsible=single_emp,
+                        status='due',
+                        created_date__date__gte=m_start,
+                        created_date__date__lte=m_end,
+                    ).count()
+                    monthly_assigned.append(assigned_cnt)
+                    monthly_completed.append(completed_cnt)
+                    monthly_open.append(open_cnt)
+                    monthly_closed.append(closed_cnt)
+                    monthly_due.append(due_cnt)
+
+                employee_status_chart_json = _json.dumps({
+                    'meta': { 'xaxis': 'months', 'employee': single_emp.get_full_name() or single_emp.username },
+                    'labels': month_labels,
+                    'datasets': [
+                        { 'label': 'Assigned', 'data': monthly_assigned },
+                        { 'label': 'Completed', 'data': monthly_completed },
+                        { 'label': 'Open', 'data': monthly_open },
+                        { 'label': 'Closed', 'data': monthly_closed },
+                        { 'label': 'Due', 'data': monthly_due },
+                    ]
+                })
+        except Exception:
+            pass
 
         # Optional export (excel/pdf)
         export_type = request.GET.get('export', '').strip().lower()
@@ -1228,6 +1329,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             'chart_data_json': chart_data_json,
             'priority_chart_json': priority_chart_json,
             'employee_status_chart_json': employee_status_chart_json,
+            'monthly_trend_chart_json': monthly_trend_chart_json,
             'aggregate_open': aggregate_open,
             'aggregate_closed': aggregate_closed,
             'aggregate_due': aggregate_due,

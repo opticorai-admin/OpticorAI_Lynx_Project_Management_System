@@ -126,6 +126,11 @@
           <div id="apex-employeeStatus"></div>
         </div>
       </div>
+      <div class="row mb-4">
+        <div class="col-12">
+          <div id="apex-monthlyTrend"></div>
+        </div>
+      </div>
       {% endif %}
       {% endif %}
     </div>
@@ -137,6 +142,7 @@
   <script type="application/json" id="monthly-status-data">{{ chart_data_json|safe }}</script>
   <script type="application/json" id="priority-data">{{ priority_chart_json|safe }}</script>
   <script type="application/json" id="employee-status-data">{{ employee_status_chart_json|safe }}</script>
+  <script type="application/json" id="monthly-trend-data">{{ monthly_trend_chart_json|safe }}</script>
   <div id="monthly-totals" data-total="{{ total_tasks|default:0 }}" data-closed="{{ closed_tasks|default:0 }}" hidden></div>
   <link rel="stylesheet" href="{% static 'core/css/monthly_employee_stats.css' %}">
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
