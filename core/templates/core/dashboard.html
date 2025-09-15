@@ -462,7 +462,7 @@
           parseInt('{{ status_report.closed|default:"0" }}'),
           parseInt('{{ status_report.due|default:"0" }}')
         ],
-        backgroundColor: ['#dc3545', '#007bff', '#ffc107']
+        backgroundColor: ['#ffc107', '#28a745', '#dc3545']
       }]
     };
     new Chart(document.getElementById('statusPieChart'), {
@@ -490,7 +490,7 @@
       data: {
         labels: statusByUserLabels,
         datasets: [
-          {label: 'Open Status', backgroundColor: '#007bff', data: statusByUserOpen},
+          {label: 'Open Status', backgroundColor: '#ffc107', data: statusByUserOpen},
           {label: 'Closed Status', backgroundColor: '#28a745', data: statusByUserClosed},
           {label: 'Due Status', backgroundColor: '#dc3545', data: statusByUserDue}
         ]

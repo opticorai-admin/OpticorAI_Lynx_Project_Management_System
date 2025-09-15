@@ -1060,13 +1060,6 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     'borderWidth': 1,
                 },
                 {
-                    'label': 'Completed',
-                    'data': completed_values,
-                    'backgroundColor': '#4BC0C0',
-                    'borderColor': '#26A69A',
-                    'borderWidth': 1,
-                },
-                {
                     'label': 'Open',
                     'data': open_values,
                     'backgroundColor': '#36A2EB',
@@ -1150,7 +1143,6 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     'labels': month_labels,
                     'datasets': [
                         { 'label': 'Assigned', 'data': monthly_assigned },
-                        { 'label': 'Completed', 'data': monthly_completed },
                         { 'label': 'Open', 'data': monthly_open },
                         { 'label': 'Closed', 'data': monthly_closed },
                         { 'label': 'Due', 'data': monthly_due },
