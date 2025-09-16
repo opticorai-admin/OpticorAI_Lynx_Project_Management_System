@@ -959,6 +959,12 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             aggregate_closed += closed_count
             aggregate_due += due_count
 
+            # Average final score for tasks completed in period (evaluated only)
+            try:
+                avg_final_score = completed_qs.filter(final_score__isnull=False).aggregate(avg=Avg('final_score'))['avg']
+            except Exception:
+                avg_final_score = None
+
             stats.append({
                 'employee': emp,
                 'total_assigned': total_assigned,
@@ -971,6 +977,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 'open_count': open_count,
                 'closed_count': closed_count,
                 'due_count': due_count,
+                'avg_final_score': None if avg_final_score is None else round(float(avg_final_score), 2),
             })
 
         # Chart data for overall status distribution and enhanced visuals
@@ -1169,6 +1176,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     row['priority_medium'],
                     row['priority_low'],
                     f"{row['completion_rate']}%",
+                    '-' if row.get('avg_final_score') in (None, '') else f"{row['avg_final_score']}%",
                     '-' if row['avg_timeliness_days'] is None else row['avg_timeliness_days'],
                 ])
 
@@ -1180,13 +1188,13 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 ws.title = 'Monthly Stats'
                 ws.append([f"Monthly Employee Statistics ({period_label})"])
                 ws.append([])
-                headers = ['Employee', 'Total Assigned', 'Completed', 'Open', 'Closed', 'Due', 'High', 'Medium', 'Low', 'Completion Rate', 'Timeliness (avg days vs target)']
+                headers = ['Employee', 'Total Assigned', 'Completed', 'Open', 'Closed', 'Due', 'High', 'Medium', 'Low', 'Completion Rate', 'Avg Final Score', 'Timeliness (avg days vs target)']
                 ws.append(headers)
                 for r in rows:
                     ws.append(r)
                 # Totals row
                 ws.append([])
-                ws.append(['Totals', sum(x[1] for x in rows), sum(x[2] for x in rows), aggregate_open, aggregate_closed, aggregate_due, sum(x[6] for x in rows), sum(x[7] for x in rows), sum(x[8] for x in rows), '', ''])
+                ws.append(['Totals', sum(x[1] for x in rows), sum(x[2] for x in rows), aggregate_open, aggregate_closed, aggregate_due, sum(x[6] for x in rows), sum(x[7] for x in rows), sum(x[8] for x in rows), '', '', ''])
                 output = BytesIO()
                 wb.save(output)
                 output.seek(0)
@@ -1196,9 +1204,14 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             else:
                 from reportlab.lib.pagesizes import A4
                 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable, PageBreak
                 from reportlab.lib import colors
                 from reportlab.lib.units import inch
+                # Charts
+                from reportlab.graphics.shapes import Drawing, String
+                from reportlab.graphics.charts.barcharts import VerticalBarChart
+                from reportlab.graphics.charts.legends import Legend
+                from reportlab.graphics.charts.lineplots import LinePlot
 
                 buffer = BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
@@ -1257,6 +1270,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     'Medium',
                     'Low',
                     'Completion Rate',
+                    'Avg Final Score',
                     'Timeliness (avg days vs target)',
                 ]
                 data = [[Paragraph(text, styles['Normal']) for text in header_cells]]
@@ -1279,6 +1293,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         0.45*inch, # Medium
                         0.45*inch, # Low
                         0.8*inch,  # Completion Rate
+                        0.8*inch,  # Avg Final Score
                         1.0*inch,  # Timeliness
                     ],
                 )
@@ -1296,6 +1311,153 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
                 ]))
                 story.append(table)
+
+                # --- Charts section ---
+                story.append(Spacer(1, 12))
+                story.append(Paragraph('Charts', styles['Heading2']))
+
+                brand_yellow = colors.HexColor('#ffc107')
+                brand_green = colors.HexColor('#28a745')
+                brand_red = colors.HexColor('#dc3545')
+                brand_grey = colors.HexColor('#6c757d')
+
+                # 1) Monthly Status (Open/Closed/Due) - Bar
+                try:
+                    status_draw = Drawing(420, 240)
+                    status_chart = VerticalBarChart()
+                    status_chart.x = 50
+                    status_chart.y = 40
+                    status_chart.height = 150
+                    status_chart.width = 320
+                    status_chart.categoryAxis.categoryNames = ['Open', 'Closed', 'Due']
+                    status_chart.categoryAxis.labels.boxAnchor = 'ne'
+                    status_chart.valueAxis.valueMin = 0
+                    status_chart.groupSpacing = 8
+                    status_chart.barSpacing = 2
+                    status_chart.data = [
+                        [aggregate_open or 0, 0, 0],
+                        [0, aggregate_closed or 0, 0],
+                        [0, 0, aggregate_due or 0],
+                    ]
+                    status_chart.bars[0].fillColor = brand_yellow
+                    status_chart.bars[1].fillColor = brand_green
+                    status_chart.bars[2].fillColor = brand_red
+                    status_draw.add(status_chart)
+                    status_legend = Legend()
+                    status_legend.x = 50
+                    status_legend.y = 20
+                    status_legend.colorNamePairs = [
+                        (brand_yellow, 'Open'),
+                        (brand_green, 'Closed'),
+                        (brand_red, 'Due'),
+                    ]
+                    status_draw.add(status_legend)
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph('Monthly Status (Open / Closed / Due)', styles['Heading3']))
+                    story.append(status_draw)
+                    # Force charts onto clean pages to avoid layout overflow
+                    story.append(PageBreak())
+                except Exception:
+                    pass
+
+                # (Priority Distribution intentionally omitted per requirements)
+
+                # 3) Tasks by Employee - Stacked Bar (Assigned/Open/Closed/Due)
+                try:
+                    # Normalize data lengths and types
+                    _labels = [str(n) for n in (employee_labels or [])]
+                    def _ints(values):
+                        return [int(v or 0) for v in (values or [])]
+                    _assigned = _ints(assigned_values)
+                    _open = _ints(open_values)
+                    _closed = _ints(closed_values)
+                    _due = _ints(due_values)
+                    n = min(len(_labels), len(_assigned), len(_open), len(_closed), len(_due))
+                    _labels = _labels[:n]
+                    _assigned, _open, _closed, _due = _assigned[:n], _open[:n], _closed[:n], _due[:n]
+                    if n > 0:
+                        emp_draw = Drawing(500, 260)
+                        emp_chart = VerticalBarChart()
+                        emp_chart.x = 50
+                        emp_chart.y = 70
+                        emp_chart.height = 170
+                        emp_chart.width = 420
+                        emp_chart.categoryAxis.categoryNames = _labels
+                        try:
+                            emp_chart.categoryAxis.labels.angle = 45
+                            emp_chart.categoryAxis.labels.fontSize = 7
+                        except Exception:
+                            pass
+                        emp_chart.valueAxis.valueMin = 0
+                        try:
+                            emp_chart.valueAxis.visibleGrid = True
+                            emp_chart.valueAxis.gridStrokeColor = colors.HexColor('#dddddd')
+                        except Exception:
+                            pass
+                        emp_chart.groupSpacing = 6
+                        emp_chart.barSpacing = 0.8
+                        emp_chart.stacked = True
+                        emp_chart.data = [
+                            _assigned,
+                            _open,
+                            _closed,
+                            _due,
+                        ]
+                        for i, c in enumerate([brand_grey, brand_yellow, brand_green, brand_red]):
+                            if i < len(emp_chart.bars):
+                                emp_chart.bars[i].fillColor = c
+                        emp_draw.add(emp_chart)
+                        # Axis titles
+                        try:
+                            emp_draw.add(String(260, 20, 'Employees', fontSize=9))
+                            emp_draw.add(String(15, 180, 'Number of Tasks', angle=90, fontSize=9))
+                        except Exception:
+                            pass
+                        emp_legend = Legend()
+                        emp_legend.x = 360
+                        emp_legend.y = 60
+                        emp_legend.colorNamePairs = [
+                            (brand_grey, 'Assigned'),
+                            (brand_yellow, 'Open'),
+                            (brand_green, 'Closed'),
+                            (brand_red, 'Due'),
+                        ]
+                        emp_draw.add(emp_legend)
+                        story.append(Spacer(1, 6))
+                        story.append(Paragraph('Tasks by Employee (stacked)', styles['Heading3']))
+                        story.append(emp_draw)
+                        story.append(PageBreak())
+                except Exception:
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph('Tasks by Employee chart unavailable for this selection.', styles['Normal']))
+
+                # 4) Monthly Task Creation Trend - Line Plot (per employee)
+                try:
+                    if 'trend_labels' in locals() and 'trend_datasets' in locals() and trend_labels and trend_datasets:
+                        lp_draw = Drawing(500, 280)
+                        line = LinePlot()
+                        line.x = 40
+                        line.y = 60
+                        line.height = 180
+                        line.width = 420
+                        # build data series as (x, y) tuples
+                        line.data = []
+                        for ds in trend_datasets:
+                            series = [(i, v) for i, v in enumerate(ds.get('data', []) or [])]
+                            line.data.append(series)
+                        line.joinedLines = True
+                        line.lines[0].strokeColor = colors.HexColor('#0d6efd') if len(line.lines) > 0 else colors.black
+                        # simple axis labels
+                        from reportlab.graphics.widgets.markers import makeMarker
+                        for i in range(len(line.data)):
+                            if i < len(line.lines):
+                                line.lines[i].symbol = makeMarker('FilledCircle')
+                        lp_draw.add(line)
+                        story.append(Spacer(1, 6))
+                        story.append(Paragraph('Monthly Task Creation Trend', styles['Heading3']))
+                        story.append(lp_draw)
+                except Exception:
+                    pass
 
                 doc.build(story)
                 buffer.seek(0)

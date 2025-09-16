@@ -54,6 +54,7 @@
             <th>Closed</th>
             <th>Due</th>
             <th>Completion Rate</th>
+            <th>Avg Final Score</th>
             <th>High</th>
             <th>Medium</th>
             <th>Low</th>
@@ -70,6 +71,9 @@
             <td>{{ row.closed_count }}</td>
             <td>{{ row.due_count }}</td>
             <td>{{ row.completion_rate }}%</td>
+            <td>
+              {% if row.avg_final_score %}{{ row.avg_final_score|floatformat:1 }}%{% else %}—{% endif %}
+            </td>
             <td>{{ row.priority_high }}</td>
             <td>{{ row.priority_medium }}</td>
             <td>{{ row.priority_low }}</td>
