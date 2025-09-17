@@ -959,9 +959,22 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
             aggregate_closed += closed_count
             aggregate_due += due_count
 
-            # Average final score for tasks completed in period (evaluated only)
+            # KPI-weighted final score for CLOSED & evaluated tasks in period (align with Employees Progress)
             try:
-                avg_final_score = completed_qs.filter(final_score__isnull=False).aggregate(avg=Avg('final_score'))['avg']
+                from core.models import KPI
+                eval_tasks = completed_qs.filter(evaluation_status='evaluated', final_score__isnull=False)
+                manager_kpis = KPI.objects.filter(created_by=user, is_active=True)
+                total_weighted_score = 0.0
+                total_weight = 0.0
+                for kpi in manager_kpis:
+                    kpi_tasks = eval_tasks.filter(kpi=kpi)
+                    if kpi_tasks.exists():
+                        from django.db.models import Sum as _Sum
+                        task_count = kpi_tasks.count()
+                        sum_scores = kpi_tasks.aggregate(total=_Sum('final_score'))['total'] or 0.0
+                        total_weighted_score += float(sum_scores) * float(kpi.weight)
+                        total_weight += float(kpi.weight) * float(task_count)
+                avg_final_score = round(total_weighted_score / total_weight, 2) if total_weight > 0 else None
             except Exception:
                 avg_final_score = None
 
