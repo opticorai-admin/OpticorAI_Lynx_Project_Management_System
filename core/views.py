@@ -1221,7 +1221,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 from reportlab.lib import colors
                 from reportlab.lib.units import inch
                 # Charts
-                from reportlab.graphics.shapes import Drawing, String
+                from reportlab.graphics.shapes import Drawing, String, Rect
                 from reportlab.graphics.charts.barcharts import VerticalBarChart
                 from reportlab.graphics.charts.legends import Legend
                 from reportlab.graphics.charts.lineplots import LinePlot
@@ -1336,15 +1336,20 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
 
                 # 1) Monthly Status (Open/Closed/Due) - Bar
                 try:
-                    status_draw = Drawing(420, 240)
+                    status_draw = Drawing(420, 290)
                     status_chart = VerticalBarChart()
                     status_chart.x = 50
-                    status_chart.y = 40
+                    status_chart.y = 60
                     status_chart.height = 150
                     status_chart.width = 320
                     status_chart.categoryAxis.categoryNames = ['Open', 'Closed', 'Due']
                     status_chart.categoryAxis.labels.boxAnchor = 'ne'
                     status_chart.valueAxis.valueMin = 0
+                    try:
+                        status_chart.valueAxis.visibleGrid = True
+                        status_chart.valueAxis.gridStrokeColor = colors.HexColor('#eeeeee')
+                    except Exception:
+                        pass
                     status_chart.groupSpacing = 8
                     status_chart.barSpacing = 2
                     status_chart.data = [
@@ -1356,17 +1361,33 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     status_chart.bars[1].fillColor = brand_green
                     status_chart.bars[2].fillColor = brand_red
                     status_draw.add(status_chart)
-                    status_legend = Legend()
-                    status_legend.x = 50
-                    status_legend.y = 20
-                    status_legend.colorNamePairs = [
-                        (brand_yellow, 'Open'),
-                        (brand_green, 'Closed'),
-                        (brand_red, 'Due'),
-                    ]
-                    status_draw.add(status_legend)
+                    # Axis titles for clarity
+                    try:
+                        status_draw.add(String(210, 34, 'Status', fontSize=9))
+                    except Exception:
+                        pass
+                    try:
+                        status_draw.add(String(20, 120, 'Number of Tasks', angle=90, fontSize=9))
+                    except Exception:
+                        pass
+                    # Horizontal legend (color explanation)
+                    try:
+                        legend_items = [
+                            (brand_yellow, 'Open'),
+                            (brand_green, 'Closed'),
+                            (brand_red, 'Due'),
+                        ]
+                        start_x = 160
+                        y = 10
+                        step_x = 110
+                        for i, (col, label) in enumerate(legend_items):
+                            x = start_x + i * step_x
+                            status_draw.add(Rect(x, y, 12, 12, fillColor=col, strokeColor=col))
+                            status_draw.add(String(x + 18, y, label, fontSize=9))
+                    except Exception:
+                        pass
                     story.append(Spacer(1, 6))
-                    story.append(Paragraph('Monthly Status (Open / Closed / Due)', styles['Heading3']))
+                    story.append(Paragraph('Monthly Status', styles['Heading3']))
                     story.append(status_draw)
                     # Force charts onto clean pages to avoid layout overflow
                     story.append(PageBreak())
@@ -1447,25 +1468,91 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 # 4) Monthly Task Creation Trend - Line Plot (per employee)
                 try:
                     if 'trend_labels' in locals() and 'trend_datasets' in locals() and trend_labels and trend_datasets:
-                        lp_draw = Drawing(500, 280)
+                        lp_draw = Drawing(520, 420)
                         line = LinePlot()
-                        line.x = 40
-                        line.y = 60
-                        line.height = 180
-                        line.width = 420
+                        line.x = 50
+                        line.y = 160
+                        line.height = 190
+                        # Shrink plot width to make room for a side legend along the y-axis
+                        line.width = 360
                         # build data series as (x, y) tuples
                         line.data = []
                         for ds in trend_datasets:
                             series = [(i, v) for i, v in enumerate(ds.get('data', []) or [])]
                             line.data.append(series)
                         line.joinedLines = True
-                        line.lines[0].strokeColor = colors.HexColor('#0d6efd') if len(line.lines) > 0 else colors.black
+                        # Apply a readable color palette per series
+                        palette = [
+                            colors.HexColor('#0d6efd'),  # blue
+                            colors.HexColor('#20c997'),  # teal
+                            colors.HexColor('#ffc107'),  # yellow
+                            colors.HexColor('#dc3545'),  # red
+                            colors.HexColor('#6f42c1'),  # purple
+                            colors.HexColor('#198754'),  # green
+                            colors.HexColor('#fd7e14'),  # orange
+                            colors.HexColor('#6c757d'),  # gray
+                        ]
+                        try:
+                            for i in range(len(line.data)):
+                                if i < len(line.lines):
+                                    line.lines[i].strokeColor = palette[i % len(palette)]
+                        except Exception:
+                            pass
+                        # Light grid
+                        try:
+                            line.xValueAxis.visibleGrid = True
+                            line.xValueAxis.gridStrokeColor = colors.HexColor('#eeeeee')
+                            line.yValueAxis.visibleGrid = True
+                            line.yValueAxis.gridStrokeColor = colors.HexColor('#eeeeee')
+                        except Exception:
+                            pass
                         # simple axis labels
                         from reportlab.graphics.widgets.markers import makeMarker
                         for i in range(len(line.data)):
                             if i < len(line.lines):
                                 line.lines[i].symbol = makeMarker('FilledCircle')
                         lp_draw.add(line)
+                        # Axis titles and month tick labels (bring Month closer to plot)
+                        try:
+                            lp_draw.add(String(240, 80, 'Month', fontSize=9))
+                            lp_draw.add(String(15, 220, 'Number of Tasks', angle=90, fontSize=9))
+                        except Exception:
+                            pass
+                        # Draw month abbreviations along the x-axis for readability
+                        try:
+                            labels = trend_labels or []
+                            steps = max(1, (len(labels) // 6) or 1)  # reduce clutter by skipping
+                            for i, label in enumerate(labels):
+                                if i % steps != 0:
+                                    continue
+                                # scale position across plot width
+                                px = 50 + (0 if len(labels) <= 1 else (i / float(len(labels) - 1)) * line.width)
+                                lp_draw.add(String(px, 132, label, fontSize=8))
+                        except Exception:
+                            pass
+                        # Legend for employees
+                        try:
+                            # Vertical multi-column legend along the right side (y-axis aligned)
+                            pairs = []
+                            for i, ds in enumerate(trend_datasets or []):
+                                col = palette[i % len(palette)]
+                                pairs.append((col, ds.get('label') or f'Series {i+1}'))
+                            # Layout parameters for side legend
+                            side_start_x = line.x + line.width + 20  # right of plot
+                            side_start_y = 160  # align near plot bottom
+                            rows_per_col = 10
+                            col_step_x = 90
+                            row_step_y = 16
+                            for i, (col, name) in enumerate(pairs):
+                                cx = side_start_x + (i // rows_per_col) * col_step_x
+                                cy = side_start_y + (i % rows_per_col) * row_step_y
+                                # stop if we run out of drawing width
+                                if cx + 80 > 520:
+                                    break
+                                lp_draw.add(Rect(cx, cy, 10, 10, fillColor=col, strokeColor=col))
+                                lp_draw.add(String(cx + 14, cy, name, fontSize=8))
+                        except Exception:
+                            pass
                         story.append(Spacer(1, 6))
                         story.append(Paragraph('Monthly Task Creation Trend', styles['Heading3']))
                         story.append(lp_draw)
