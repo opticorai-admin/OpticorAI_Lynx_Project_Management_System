@@ -1225,6 +1225,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 from reportlab.graphics.charts.barcharts import VerticalBarChart
                 from reportlab.graphics.charts.legends import Legend
                 from reportlab.graphics.charts.lineplots import LinePlot
+                from reportlab.graphics.charts.textlabels import Label
 
                 buffer = BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
@@ -1367,7 +1368,16 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     except Exception:
                         pass
                     try:
-                        status_draw.add(String(20, 120, 'Number of Tasks', angle=90, fontSize=9))
+                        ylbl = Label()
+                        ylbl.setOrigin(14, status_chart.y + (status_chart.height / 2.0))
+                        ylbl.angle = 90
+                        ylbl.boxAnchor = 'c'
+                        ylbl.fontSize = 9
+                        try:
+                            ylbl.setText('Number of Tasks')
+                        except Exception:
+                            ylbl.text = 'Number of Tasks'
+                        status_draw.add(ylbl)
                     except Exception:
                         pass
                     # Horizontal legend (color explanation)
@@ -1515,7 +1525,16 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         # Axis titles and month tick labels (bring Month closer to plot)
                         try:
                             lp_draw.add(String(240, 80, 'Month', fontSize=9))
-                            lp_draw.add(String(15, 220, 'Number of Tasks', angle=90, fontSize=9))
+                            ylbl2 = Label()
+                            ylbl2.setOrigin(14, line.y + (line.height / 2.0))
+                            ylbl2.angle = 90
+                            ylbl2.boxAnchor = 'c'
+                            ylbl2.fontSize = 9
+                            try:
+                                ylbl2.setText('Number of Tasks')
+                            except Exception:
+                                ylbl2.text = 'Number of Tasks'
+                            lp_draw.add(ylbl2)
                         except Exception:
                             pass
                         # Draw month abbreviations along the x-axis for readability
