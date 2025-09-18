@@ -2068,7 +2068,7 @@ class EvaluateTaskView(LoginRequiredMixin, View):
                 task.evaluated_by = user
                 task.evaluated_date = timezone.now()
                 task.save()
-                messages.success(request, f'Task evaluated successfully! Final Score: {task.final_score:.1f}%')
+                messages.success(request, 'Task evaluated successfully! Check your Final Score in the task details.')
             else:
                 messages.error(request, 'Failed to evaluate task. Please check quality rating.')
                 context = {'task': task, 'form': form, 'title': 'Evaluate Task'}
@@ -2076,7 +2076,7 @@ class EvaluateTaskView(LoginRequiredMixin, View):
             
             # Notify employee
             if task.responsible:
-                notification_message = f"Your task '{task.issue_action[:40]}...' has been evaluated. Final Score: {task.final_score:.1f}%"
+                notification_message = f"Your task '{task.issue_action[:40]}...' has been evaluated. Check your Final Score in the task details."
                 Notification.objects.create(
                     recipient=task.responsible,
                     sender=user,
@@ -3090,7 +3090,7 @@ class CloseIncompleteTaskView(LoginRequiredMixin, View):
                 if task.manager_closure_penalty_applied:
                     penalty_notice = " (Manager closure penalty applied)"
                 
-                notification_message = f"Your task '{task.issue_action[:40]}...' has been closed by your manager. Final Score: {task.final_score:.1f}%{penalty_notice}"
+                notification_message = f"Your task '{task.issue_action[:40]}...' has been closed by your manager.{penalty_notice}"
                 Notification.objects.create(
                     recipient=task.responsible,
                     sender=user,
