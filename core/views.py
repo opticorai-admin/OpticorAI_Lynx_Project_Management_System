@@ -1483,45 +1483,148 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         line.x = 50
                         line.y = 160
                         line.height = 190
-                        # Shrink plot width to make room for a side legend along the y-axis
-                        line.width = 360
+                        # Full plot width; legend will be rendered below the chart
+                        line.width = 420
                         # build data series as (x, y) tuples
                         line.data = []
                         for ds in trend_datasets:
                             series = [(i, v) for i, v in enumerate(ds.get('data', []) or [])]
                             line.data.append(series)
                         line.joinedLines = True
-                        # Apply a readable color palette per series
+                        # Use ApexCharts default-like palette to match frontend colors/order
                         palette = [
-                            colors.HexColor('#0d6efd'),  # blue
-                            colors.HexColor('#20c997'),  # teal
-                            colors.HexColor('#ffc107'),  # yellow
-                            colors.HexColor('#dc3545'),  # red
-                            colors.HexColor('#6f42c1'),  # purple
-                            colors.HexColor('#198754'),  # green
-                            colors.HexColor('#fd7e14'),  # orange
-                            colors.HexColor('#6c757d'),  # gray
+                            colors.HexColor('#008FFB'),  # blue
+                            colors.HexColor('#00E396'),  # green/teal
+                            colors.HexColor('#FEB019'),  # yellow
+                            colors.HexColor('#FF4560'),  # red
+                            colors.HexColor('#775DD0'),  # purple
+                            colors.HexColor('#3F51B5'),  # indigo
+                            colors.HexColor('#546E7A'),  # blue-grey
+                            colors.HexColor('#26A69A'),  # teal
+                            colors.HexColor('#D4526E'),  # rose
+                            colors.HexColor('#8D5B4C'),  # brown
                         ]
+                        # Explicit name→color mapping to mirror frontend legend exactly
+                        name_to_color = {
+                            'Employee 05': colors.HexColor('#546E7A'),  # blue-grey
+                            'Employee 04': colors.HexColor('#3F51B5'),  # indigo
+                            'Employee 03': colors.HexColor('#775DD0'),  # purple
+                            'Employee 02': colors.HexColor('#FF4560'),  # red
+                            'Employee 01': colors.HexColor('#FEB019'),  # yellow
+                            'Ashir Bhalli': colors.HexColor('#00E396'),  # teal/green
+                            'Ashir Ali': colors.HexColor('#008FFB'),    # blue
+                        }
+                        def _norm(s):
+                            try:
+                                return (s or '').strip().lower()
+                            except Exception:
+                                return s
+                        name_to_color_norm = { _norm(k): v for k, v in name_to_color.items() }
                         try:
+                            # Ensure ReportLab uses our palette for all series
+                            line.defaultColors = list(palette)
                             for i in range(len(line.data)):
                                 if i < len(line.lines):
-                                    line.lines[i].strokeColor = palette[i % len(palette)]
+                                    color_i = palette[i % len(palette)]
+                                    line.lines[i].strokeColor = color_i
                         except Exception:
                             pass
-                        # Light grid
+                        # Light grid and axis bounds
                         try:
                             line.xValueAxis.visibleGrid = True
                             line.xValueAxis.gridStrokeColor = colors.HexColor('#eeeeee')
                             line.yValueAxis.visibleGrid = True
                             line.yValueAxis.gridStrokeColor = colors.HexColor('#eeeeee')
+                            # Set y max from data so we can position end-of-line labels precisely
+                            try:
+                                _max_val = 0
+                                for ser in line.data:
+                                    for _, yv in ser:
+                                        if yv is not None:
+                                            _max_val = max(_max_val, float(yv))
+                                if _max_val <= 0:
+                                    _max_val = 1
+                                line.yValueAxis.valueMin = 0
+                                line.yValueAxis.valueMax = _max_val
+                            except Exception:
+                                pass
                         except Exception:
                             pass
                         # simple axis labels
                         from reportlab.graphics.widgets.markers import makeMarker
                         for i in range(len(line.data)):
                             if i < len(line.lines):
-                                line.lines[i].symbol = makeMarker('FilledCircle')
+                                color_i = palette[i % len(palette)]
+                                m = makeMarker('Circle')
+                                try:
+                                    m.size = 4
+                                except Exception:
+                                    pass
+                                try:
+                                    m.fillColor = color_i
+                                    m.strokeColor = color_i
+                                except Exception:
+                                    pass
+                                line.lines[i].symbol = m
                         lp_draw.add(line)
+                        # Ensure series colors and markers are applied after adding the plot
+                        try:
+                            # Build series colors using explicit mapping first, then palette fallback
+                            labels_series = [ (ds.get('label') or f'Series {i+1}') for i, ds in enumerate(trend_datasets or []) ]
+                            series_colors = [
+                                name_to_color_norm.get(_norm(lbl), palette[i % len(palette)])
+                                for i, lbl in enumerate(labels_series)
+                            ]
+                            line.defaultColors = list(series_colors)
+                            from reportlab.graphics.widgets.markers import makeMarker as _mk
+                            for i in range(len(line.data)):
+                                if i < len(line.lines):
+                                    _c = series_colors[i % len(series_colors)]
+                                    line.lines[i].strokeColor = _c
+                                    try:
+                                        line.lines[i].strokeWidth = 2.5
+                                    except Exception:
+                                        pass
+                                    try:
+                                        m = _mk('Circle')
+                                        try:
+                                            m.size = 6
+                                        except Exception:
+                                            pass
+                                        m.fillColor = _c
+                                        m.strokeColor = _c
+                                        line.lines[i].symbol = m
+                                    except Exception:
+                                        pass
+                            if not series_colors:
+                                series_colors = [palette[i % len(palette)] for i in range(len(trend_datasets or []))]
+                        except Exception:
+                            series_colors = [palette[i % len(palette)] for i in range(len(trend_datasets or []))]
+
+                        # End-of-line labels next to last point for each series
+                        try:
+                            labels = trend_labels or []
+                            n_labels = max(1, len(labels))
+                            for i, ser in enumerate(line.data):
+                                if not ser:
+                                    continue
+                                last_x_idx, last_y_val = ser[-1]
+                                col = series_colors[i % len(series_colors)] if series_colors else colors.black
+                                # position
+                                px = line.x + (0 if n_labels <= 1 else (last_x_idx / float(n_labels - 1)) * line.width)
+                                try:
+                                    y_max = getattr(line.yValueAxis, 'valueMax', None) or 1
+                                except Exception:
+                                    y_max = 1
+                                py = line.y + (float(last_y_val or 0) / float(y_max)) * line.height
+                                name = (trend_datasets[i].get('label') or f'Series {i+1}') if i < len(trend_datasets) else f'Series {i+1}'
+                                # slight right/top offset
+                                try:
+                                    lp_draw.add(String(px + 6, py + 2, name, fontSize=8, fillColor=col))
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
                         # Axis titles and month tick labels (bring Month closer to plot)
                         try:
                             lp_draw.add(String(240, 80, 'Month', fontSize=9))
@@ -1549,24 +1652,25 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                                 lp_draw.add(String(px, 132, label, fontSize=8))
                         except Exception:
                             pass
-                        # Legend for employees
+                        # Legend for employees (rendered below the chart)
                         try:
-                            # Vertical multi-column legend along the right side (y-axis aligned)
                             pairs = []
                             for i, ds in enumerate(trend_datasets or []):
-                                col = palette[i % len(palette)]
-                                pairs.append((col, ds.get('label') or f'Series {i+1}'))
-                            # Layout parameters for side legend
-                            side_start_x = line.x + line.width + 20  # right of plot
-                            side_start_y = 160  # align near plot bottom
-                            rows_per_col = 10
-                            col_step_x = 90
-                            row_step_y = 16
+                                label_i = ds.get('label') or f'Series {i+1}'
+                                col = series_colors[i % len(series_colors)] if (series_colors and i < len(series_colors)) else name_to_color_norm.get(_norm(label_i), palette[i % len(palette)])
+                                pairs.append((col, label_i))
+                            # Bottom legend layout: multiple columns centered under plot
+                            per_row = 6
+                            step_x = 90
+                            step_y = 16
+                            total_width = (per_row - 1) * step_x
+                            start_x = line.x + (line.width - total_width) / 2.0
+                            base_y = 40  # below x-axis labels
                             for i, (col, name) in enumerate(pairs):
-                                cx = side_start_x + (i // rows_per_col) * col_step_x
-                                cy = side_start_y + (i % rows_per_col) * row_step_y
-                                # stop if we run out of drawing width
-                                if cx + 80 > 520:
+                                cx = start_x + (i % per_row) * step_x
+                                cy = base_y - (i // per_row) * step_y
+                                # keep within drawing bounds
+                                if cy < 10:
                                     break
                                 lp_draw.add(Rect(cx, cy, 10, 10, fillColor=col, strokeColor=col))
                                 lp_draw.add(String(cx + 14, cy, name, fontSize=8))
