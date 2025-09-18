@@ -2081,7 +2081,7 @@ class EvaluateTaskView(LoginRequiredMixin, View):
                     recipient=task.responsible,
                     sender=user,
                     message=notification_message,
-                    link=f"/projects/task/{task.id}/"
+                    # link=f"/projects/task/{task.id}/"
                 )
             
             return redirect('core:task-detail', task_id=task_id)
