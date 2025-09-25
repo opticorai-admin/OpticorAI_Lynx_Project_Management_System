@@ -145,6 +145,13 @@
         // Attribute replacements
         ['placeholder','title','aria-label','value'].forEach(function(attr){
           document.querySelectorAll('['+attr+']').forEach(function(el){
+            // Never touch CSRF token fields
+            if (attr === 'value') {
+              var nameAttr = (el.getAttribute('name') || '').toLowerCase();
+              if (nameAttr === 'csrfmiddlewaretoken' || nameAttr.indexOf('csrf') !== -1) {
+                return;
+              }
+            }
             var cur = el.getAttribute(attr);
             if (!cur) return;
             var newVal = cur;
