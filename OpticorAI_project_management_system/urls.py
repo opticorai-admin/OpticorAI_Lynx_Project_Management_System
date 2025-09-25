@@ -25,6 +25,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls', namespace='core')),
     path('accounts/login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
+    # Expose Django i18n endpoints (set_language) without changing app URLs
+    path('i18n/', include('django.conf.urls.i18n')),
 ]
 
 # Serve static files during development

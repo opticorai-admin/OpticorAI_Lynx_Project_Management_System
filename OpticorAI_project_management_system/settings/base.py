@@ -29,6 +29,7 @@ AUTH_USER_MODEL = 'core.CustomUser'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -82,6 +83,18 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+
+# Languages available (frontend uses its own switcher; backend remains opt-in)
+LANGUAGES = [
+    ('en', 'English'),
+    ('ar', 'العربية'),
+]
+
+from pathlib import Path as _Path
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
+LANGUAGE_COOKIE_NAME = 'django_language'
 
 # Business-local timezone for date-based business rules (e.g., task due checks)
 # Example: 'Asia/Muscat' or leave unset to use default local timezone

@@ -25,6 +25,10 @@
   <link href="{% static 'core/css/simple-line-icons.min.css' %}" rel="stylesheet">
   <link href="{% static 'core/css/estilo.css' %}" rel="stylesheet">
   <link href="{% static 'core/css/style.css' %}" rel="stylesheet">
+  <!-- Language assets -->
+  {% get_static_prefix as STATIC_PREFIX %}
+  <script>window.STATIC_URL = "{{ STATIC_PREFIX }}";</script>
+  <script defer src="{% static 'core/js/i18n.js' %}"></script>
 
 </head>
 {% block body %}
@@ -41,9 +45,9 @@
     <ul class="nav navbar-nav d-md-down-none">
       <li class="nav-item px-3">
         <a class="nav-link" href="{% url 'core:dashboard' %}">
-          {% if user.user_type == 'admin' %}Admin Dashboard
-          {% elif user.user_type == 'manager' %}Manager Dashboard
-          {% else %}Employee Dashboard{% endif %}
+          {% if user.user_type == 'admin' %}<span data-i18n="nav.admin_dashboard">Admin Dashboard</span>
+          {% elif user.user_type == 'manager' %}<span data-i18n="nav.manager_dashboard">Manager Dashboard</span>
+          {% else %}<span data-i18n="nav.employee_dashboard">Employee Dashboard</span>{% endif %}
         </a>
       </li>
     </ul>
@@ -68,7 +72,7 @@
         </a>
         <div class="dropdown-menu dropdown-menu-right notifications-dropdown">
           <div class="dropdown-header text-center">
-            <strong>Notifications</strong>
+            <strong data-i18n="nav.notifications">Notifications</strong>
           </div>
           {% if unread_notifications and unread_notifications|length > 0 %}
             {% for notification in unread_notifications %}
@@ -80,12 +84,12 @@
             {% endfor %}
             <div class="dropdown-divider"></div>
           {% else %}
-            <span class="dropdown-item text-muted">No new notifications</span>
+            <span class="dropdown-item text-muted" data-i18n="nav.no_new_notifications">No new notifications</span>
             <div class="dropdown-divider"></div>
           {% endif %}
           <div class="dropdown-footer">
             <a class="dropdown-item" href="{% url 'core:notifications-list' %}">
-              <i class="fa fa-list"></i> View All Notifications
+              <i class="fa fa-list"></i> <span data-i18n="nav.view_all_notifications">View All Notifications</span>
             </a>
           </div>
         </div>
@@ -103,18 +107,18 @@
           {% if user.is_authenticated %}
           {% if user.is_authenticated and user.user_type != 'admin' %}
           <div class="dropdown-header text-center">
-            <strong>Account</strong>
+            <strong data-i18n="nav.account">Account</strong>
           </div>
-          <a class="dropdown-item" href="{% url 'core:projects' %}"><i class="fa fa-tasks"></i> Tasks<span class="badge badge-danger">{{ user.task_set.values.count }}</span></a>
+          <a class="dropdown-item" href="{% url 'core:projects' %}"><i class="fa fa-tasks"></i> <span data-i18n="nav.tasks_label">Tasks</span><span class="badge badge-danger">{{ user.task_set.values.count }}</span></a>
           {% endif %}
           <div class="dropdown-header text-center">
-            <strong>Settings</strong>
+            <strong data-i18n="nav.settings">Settings</strong>
           </div>
-          <a class="dropdown-item" href="{% url 'core:profile' %}"><i class="fa fa-user"></i> Profile</a>
+          <a class="dropdown-item" href="{% url 'core:profile' %}"><i class="fa fa-user"></i> <span data-i18n="nav.profile">Profile</span></a>
           <div class="divider"></div>
-          <a class="dropdown-item" href="{% url 'core:logout' %}"><i class="fa fa-lock"></i> Logout</a>
+          <a class="dropdown-item" href="{% url 'core:logout' %}"><i class="fa fa-lock"></i> <span data-i18n="nav.logout">Logout</span></a>
           {% else %}
-          <a class="dropdown-item" href="{% url 'core:login' %}"><i class="fa fa-user"></i> Login</a>
+          <a class="dropdown-item" href="{% url 'core:login' %}"><i class="fa fa-user"></i> <span data-i18n="nav.login">Login</span></a>
           {% endif %}
         </div>
       </li>
@@ -128,15 +132,15 @@
       <nav class="sidebar-nav">
         <ul class="nav">
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'core:dashboard' %}"><i class="fa fa-tachometer"></i> Dashboard</a>
+            <a class="nav-link" href="{% url 'core:dashboard' %}"><i class="fa fa-tachometer"></i> <span data-i18n="nav.dashboard">Dashboard</span></a>
           </li>
           
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-tachometer"></i> Views</a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-tachometer"></i> <span data-i18n="nav.views">Views</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'core:notifications-list' %}">
-                  <i class="fa fa-bell ml-2"></i> View Notifications
+                  <i class="fa fa-bell ml-2"></i> <span data-i18n="nav.view_notifications">View Notifications</span>
                   {% if unread_count and unread_count > 0 %}
                     <span class="badge badge-pill badge-notify ml-2">{{ unread_count }}</span>
                   {% endif %}
@@ -144,41 +148,41 @@
               </li>
               {% if user.user_type != 'admin' %}
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:projects'%}"><i class="fa fa-paper-plane ml-2"></i> View Tasks </a>
+                <a class="nav-link" href="{% url 'core:projects'%}"><i class="fa fa-paper-plane ml-2"></i> <span data-i18n="nav.view_tasks">View Tasks</span> </a>
               </li>
               {% if user.user_type == 'manager' and user.under_supervision %}
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:my-tasks'%}"><i class="fa fa-user ml-2"></i> My Tasks</a>
+                <a class="nav-link" href="{% url 'core:my-tasks'%}"><i class="fa fa-user ml-2"></i> <span data-i18n="nav.my_tasks">My Tasks</span></a>
               </li>
               {% endif %}
               {% endif %}
               {% if user.user_type != 'employee' %}
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:users'%}"><i class="fa fa-user ml-2"></i> View Users</a>
+                <a class="nav-link" href="{% url 'core:users'%}"><i class="fa fa-user ml-2"></i> <span data-i18n="nav.view_users">View Users</span></a>
               </li>
               {% endif %}
             </ul>
           </li>
           <li class="nav-title">
-            Register
+            <span data-i18n="nav.register">Register</span>
           </li>
 
           {% if user.user_type != 'admin' %}
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-puzzle-piece"></i> Tasks</a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-puzzle-piece"></i> <span data-i18n="nav.tasks">Tasks</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:new-task'%}"><i class="fa fa-plus ml-2"></i> New Task</a>
+                <a class="nav-link" href="{% url 'core:new-task'%}"><i class="fa fa-plus ml-2"></i> <span data-i18n="nav.new_task">New Task</span></a>
               </li>
             </ul>
           </li>
           {% endif %}
           {% if user.user_type == 'admin' %}
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-user"></i> Users</a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-user"></i> <span data-i18n="nav.users">Users</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:new-user' %}"><i class="fa fa-user-plus ml-2"></i> Create New User</a>
+                <a class="nav-link" href="{% url 'core:new-user' %}"><i class="fa fa-user-plus ml-2"></i> <span data-i18n="nav.create_new_user">Create New User</span></a>
               </li>
             </ul>
           </li>
@@ -187,25 +191,25 @@
           {% if user.user_type == 'manager' %}
           <li class="divider"></li>
           <li class="nav-title">
-            Settings
+            <span data-i18n="nav.settings">Settings</span>
           </li>
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> Management</a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> <span data-i18n="nav.management">Management</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:settings-dashboard' %}"><i class="fa fa-tachometer ml-2"></i> Settings Dashboard</a>
+                <a class="nav-link" href="{% url 'core:settings-dashboard' %}"><i class="fa fa-tachometer ml-2"></i> <span data-i18n="nav.settings_dashboard">Settings Dashboard</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:kpi-list' %}"><i class="fa fa-line-chart ml-2"></i> Add KPIs</a>
+                <a class="nav-link" href="{% url 'core:kpi-list' %}"><i class="fa fa-line-chart ml-2"></i> <span data-i18n="nav.add_kpis">Add KPIs</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:progress-report' %}"><i class="fa fa-file ml-2"></i> Progress Report</a>
+                <a class="nav-link" href="{% url 'core:progress-report' %}"><i class="fa fa-file ml-2"></i> <span data-i18n="nav.progress_report">Progress Report</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:monthly-employee-stats' %}"><i class="fa fa-calendar ml-2"></i> Monthly Stats</a>
+                <a class="nav-link" href="{% url 'core:monthly-employee-stats' %}"><i class="fa fa-calendar ml-2"></i> <span data-i18n="nav.monthly_stats">Monthly Stats</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:employee-progress-list' %}"><i class="fa fa-bar-chart ml-2"></i> Employees Progress</a>
+                <a class="nav-link" href="{% url 'core:employee-progress-list' %}"><i class="fa fa-bar-chart ml-2"></i> <span data-i18n="nav.employees_progress">Employees Progress</span></a>
               </li>
             </ul>
           </li>
@@ -214,34 +218,46 @@
           {% if user.user_type == 'admin' %}
           <li class="divider"></li>
           <li class="nav-title">
-            Admin Settings
+            <span data-i18n="nav.admin_settings">Admin Settings</span>
           </li>
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> System Management</a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> <span data-i18n="nav.system_management">System Management</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:qualitytype-list' %}"><i class="fa fa-star ml-2"></i> Manage Quality Types</a>
+                <a class="nav-link" href="{% url 'core:qualitytype-list' %}"><i class="fa fa-star ml-2"></i> <span data-i18n="nav.manage_quality_types">Manage Quality Types</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:taskprioritytype-list' %}"><i class="fa fa-star ml-2"></i> Manage Priority Types</a>
+                <a class="nav-link" href="{% url 'core:taskprioritytype-list' %}"><i class="fa fa-star ml-2"></i> <span data-i18n="nav.manage_priority_types">Manage Priority Types</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:taskevaluationsettings' %}"><i class="fa fa-calculator ml-2"></i> Evaluation Settings</a>
+                <a class="nav-link" href="{% url 'core:taskevaluationsettings' %}"><i class="fa fa-calculator ml-2"></i> <span data-i18n="nav.evaluation_settings">Evaluation Settings</span></a>
               </li>
             </ul>
           </li>
           {% endif %}
           <li class="nav-title">
-            Extras
+            <span data-i18n="nav.extras">Extras</span>
           </li>
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-star"></i> Pages</a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-star"></i> <span data-i18n="nav.pages">Pages</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-in ml-2"></i> Login</a>
+                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-in ml-2"></i> <span data-i18n="nav.login">Login</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-out ml-2"></i> Logout</a>
+                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-out ml-2"></i> <span data-i18n="nav.logout">Logout</span></a>
+              </li>
+            </ul>
+          </li>
+          <!-- Languages selector (frontend only) -->
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-globe"></i> <span data-i18n="nav.languages">Languages</span></a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-lang-select="en"><i class="fa fa-flag ml-2"></i> <span data-i18n="language.english">ENGLISH</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-lang-select="ar"><i class="fa fa-flag ml-2"></i> <span data-i18n="language.arabic">عربي</span></a>
               </li>
             </ul>
           </li>
@@ -254,13 +270,13 @@
     <main class="main">
       <ol class="breadcrumb">
         {% block breadcrumb %}
-        <li class="breadcrumb-item active">Home</li>
-        <li class="breadcrumb-item">Dashboard</li>
+        <li class="breadcrumb-item active"><span data-i18n="breadcrumb.home">Home</span></li>
+        <li class="breadcrumb-item"><span data-i18n="breadcrumb.dashboard">Dashboard</span></li>
         {% endblock breadcrumb%}
 
         <li class="breadcrumb-menu d-md-down-none">
           <div class="btn-group" role="group" aria-label="Button group">
-            <a class="btn" href="./"><i class="fa fa-tachometer"></i> &nbsp;Dashboard</a>
+            <a class="btn" href="./"><i class="fa fa-tachometer"></i> &nbsp;<span data-i18n="nav.dashboard">Dashboard</span></a>
           </div>
         </li>
       </ol>
@@ -273,8 +289,10 @@
   </div>
 
   <footer class="app-footer text-center justify-content-center fixed-bottom py-2 py-lg-3">
-    <span><a href="#">Copyright</a> © OpticorAI.</span>
+    <span><a href="#" data-i18n="footer.copyright">Copyright</a> © OpticorAI.</span>
   </footer>
+
+  
 
     <script src="{% static 'core/vendors/js/jquery.min.js'%}"></script>
     <script src="{% static 'core/vendors/js/popper.min.js'%}"></script>
