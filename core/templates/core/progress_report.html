@@ -16,7 +16,7 @@
         </div>
         <div class="card-body">
           <form method="get" class="row g-2 align-items-end mb-4">
-            <div class="col-md-3 col-12">
+            <div class="col-md-3 col-12" data-i18n-skip>
               <label for="employee">Employee:</label>
               <select name="employee" id="employee" class="form-control">
                 <option value="">-- Select Employee --</option>
@@ -99,7 +99,7 @@
                   {% for task in tasks %}
                     <tr>
                       <td class="text-wrap" style="max-width: 250px; min-width:180px;">
-                        <span title="{{ task.issue_action }}">{{ task.issue_action|truncatechars:60 }}</span>
+                        <span title="{{ task.issue_action }}" data-i18n-skip>{{ task.issue_action|truncatechars:60 }}</span>
                       </td>
                       <td class="text-nowrap" style="min-width:100px;">
                         <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">

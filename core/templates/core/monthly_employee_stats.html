@@ -21,7 +21,7 @@
         </div>
         <div class="col-md-3">
           <label class="form-label">Or Up To Date</label>
-          <select class="form-select form-control" name="upto">
+          <select class="form-select form-control" name="upto" data-i18n-skip>
             <option value="">Current month only</option>
             <option value="ytd" {% if filter_upto == 'ytd' %}selected{% endif %}>Since start of year</option>
           </select>
@@ -64,7 +64,7 @@
         <tbody>
         {% for row in stats %}
           <tr>
-            <td>{{ row.employee.get_full_name|default:row.employee.username }}</td>
+            <td data-i18n-skip>{{ row.employee.get_full_name|default:row.employee.username }}</td>
             <td>{{ row.total_assigned }}</td>
             <td>{{ row.total_completed }}</td>
             <td>{{ row.open_count }}</td>

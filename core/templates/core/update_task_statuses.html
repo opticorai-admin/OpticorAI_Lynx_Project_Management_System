@@ -97,8 +97,8 @@
                                                 <tbody>
                                                     {% for task in overdue_tasks %}
                                                     <tr>
-                                                        <td>{{ task.issue_action|truncatechars:30 }}</td>
-                                                        <td>{{ task.responsible.get_full_name }}</td>
+                                                        <td data-i18n-skip>{{ task.issue_action|truncatechars:30 }}</td>
+                                                        <td data-i18n-skip>{{ task.responsible.get_full_name }}</td>
                                                         <td>{{ task.close_date }}</td>
                                                         <td>{{ task.percentage_completion }}%</td>
                                                     </tr>
@@ -133,8 +133,8 @@
                                                 <tbody>
                                                     {% for task in completed_tasks %}
                                                     <tr>
-                                                        <td>{{ task.issue_action|truncatechars:30 }}</td>
-                                                        <td>{{ task.responsible.get_full_name }}</td>
+                                                        <td data-i18n-skip>{{ task.issue_action|truncatechars:30 }}</td>
+                                                        <td data-i18n-skip>{{ task.responsible.get_full_name }}</td>
                                                         <td>{{ task.percentage_completion }}%</td>
                                                         <td>
                                                             <span class="badge badge-{% if task.status == 'open' %}primary{% else %}warning{% endif %}">

@@ -121,12 +121,31 @@
           } catch (e) { return text; }
         }
 
+        // Explicit opt-out: skip translating inside elements marked with data-i18n-skip or translate="no"
+        function shouldSkip(el) {
+          try {
+            var cur = el;
+            var hops = 0;
+            while (cur && hops < 5) {
+              if (cur.nodeType === Node.ELEMENT_NODE) {
+                if (cur.hasAttribute && (cur.hasAttribute('data-i18n-skip') || cur.getAttribute('translate') === 'no')) {
+                  return true;
+                }
+              }
+              cur = cur.parentNode;
+              hops++;
+            }
+          } catch (e) { /* ignore */ }
+          return false;
+        }
+
         // Text nodes
         var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
         var node;
         while ((node = walker.nextNode())) {
           var text = node.nodeValue;
           if (!text || !text.trim()) continue;
+          if (shouldSkip(node.parentNode)) continue;
           var replaced = text;
           pairs.forEach(function (p) { replaced = ciReplace(replaced, p.from, p.to); });
           // Lexicon per-word (simple word boundaries for latin; direct replace otherwise)
@@ -145,6 +164,7 @@
         // Attribute replacements
         ['placeholder','title','aria-label','value'].forEach(function(attr){
           document.querySelectorAll('['+attr+']').forEach(function(el){
+            if (shouldSkip(el)) return;
             // Never touch CSRF token fields
             if (attr === 'value') {
               var nameAttr = (el.getAttribute('name') || '').toLowerCase();

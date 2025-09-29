@@ -10,7 +10,7 @@
                     <strong>Confirm User Deletion</strong>
                 </div>
                 <div class="card-body">
-                    <p>Are you sure you want to delete the user <strong>{{ object.get_full_name|default:object.username }}</strong>?</p>
+                    <p>Are you sure you want to delete the user <strong data-i18n-skip>{{ object.get_full_name|default:object.username }}</strong>?</p>
                     <form method="post">{% csrf_token %}
                         <button type="submit" class="btn btn-danger">Yes, Delete</button>
                         <a href="{% url 'core:users' %}" class="btn btn-secondary">Cancel</a>

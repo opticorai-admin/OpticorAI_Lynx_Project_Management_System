@@ -16,7 +16,7 @@
                     <div class="col-12 col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <strong>{{ target_user.get_full_name }} - Current Profile</strong>
+                                <strong><span data-i18n-skip>{{ target_user.get_full_name }}</span> - Current Profile</strong>
                             </div>
                             <div class="card-body">
                                 <div class="message">
@@ -27,12 +27,12 @@
                                         </div>
                                     </div>
                                     <div>
-                                        <small class="text-muted">{{ target_user.get_full_name }}</small>
+                                        <small class="text-muted" data-i18n-skip>{{ target_user.get_full_name }}</small>
                                         {% if target_user.last_login %}
                                         <small class="text-muted float-right mt-1">Last login: {{ target_user.last_login|date:"H:i" }} in {{ target_user.last_login|date:"d/m" }}</small>
                                         {% endif %}
                                     </div>
-                                    <div class="mt-2">
+                                    <div class="mt-2" data-i18n-skip>
                                         <strong>User Type:</strong> {{ target_user.get_user_type_display }}<br>
                                         <strong>Designation:</strong> {{ target_user.designation }}<br>
                                         <strong>Supervisor:</strong> {{ target_user.under_supervision.username|default:'-' }}<br>
@@ -64,31 +64,37 @@
                                     {% csrf_token %}
                                     <div class="form-group">
                                         <label for="{{ form.first_name.id_for_label }}">First Name:</label>
+                                        <div data-i18n-skip>
                                         {{ form.first_name }}
                                         {% if form.first_name.errors %}
                                         <div class="alert alert-danger">
                                             {{ form.first_name.errors }}
                                         </div>
                                         {% endif %}
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="{{ form.last_name.id_for_label }}">Last Name:</label>
+                                        <div data-i18n-skip>
                                         {{ form.last_name }}
                                         {% if form.last_name.errors %}
                                         <div class="alert alert-danger">
                                             {{ form.last_name.errors }}
                                         </div>
                                         {% endif %}
+                                        </div>
                                     </div>
                                     {% if form.email %}
                                     <div class="form-group">
                                         <label for="{{ form.email.id_for_label }}">Email:</label>
+                                        <div data-i18n-skip>
                                         {{ form.email }}
                                         {% if form.email.errors %}
                                         <div class="alert alert-danger">
                                             {{ form.email.errors }}
                                         </div>
                                         {% endif %}
+                                        </div>
                                     </div>
                                     {% endif %}
                                     {% if form.designation %}
@@ -116,12 +122,14 @@
                                     {% if form.under_supervision %}
                                     <div class="form-group">
                                         <label for="{{ form.under_supervision.id_for_label }}">Supervisor:</label>
+                                        <div data-i18n-skip>
                                         {{ form.under_supervision }}
                                         {% if form.under_supervision.errors %}
                                         <div class="alert alert-danger">
                                             {{ form.under_supervision.errors }}
                                         </div>
                                         {% endif %}
+                                        </div>
                                     </div>
                                     {% endif %}
                                     <div class="form-group">

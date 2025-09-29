@@ -6,7 +6,7 @@
     <li class="breadcrumb-item">
         <a href="{% url 'core:employee-progress-list' %}">Employee Progress</a>
     </li>
-    <li class="breadcrumb-item active">{{ employee.get_full_name }}</li>
+    <li class="breadcrumb-item active" data-i18n-skip>{{ employee.get_full_name }}</li>
 {% endblock breadcrumb %}
 
 {% block content %}

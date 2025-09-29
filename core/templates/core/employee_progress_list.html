@@ -33,9 +33,9 @@
               <label for="employee">Employee:</label>
               <select name="employee" id="employee" class="form-control">
                 <option value="">All Employees</option>
-                {% for emp in subordinates %}
+                <div data-i18n-skip> {% for emp in subordinates %}
                   <option value="{{ emp.id }}" {% if emp.id|stringformat:'s' == selected_employee.id|stringformat:'s' %}selected{% endif %}>{{ emp.username }}</option>
-                {% endfor %}
+                {% endfor %}</div>
               </select>
              </div>
             <div class="col-md-2">
@@ -59,7 +59,7 @@
                 <tbody>
                   {% for row in employees_summary %}
                     <tr>
-                      <td>{{ row.employee.get_full_name }}</td>
+                      <td data-i18n-skip>{{ row.employee.get_full_name }}</td>
                       <td class="text-right">
                         {% if row.score is not None %}
                           <span class="badge badge-{{ row.score|score_to_badge }}">{{ row.score }}%</span>

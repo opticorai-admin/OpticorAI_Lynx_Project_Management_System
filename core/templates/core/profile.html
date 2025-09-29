@@ -34,7 +34,7 @@
                                         <small class="text-muted float-right mt-1">Last login: {{ logged_user.last_login|date:"H:i" }} in {{ logged_user.last_login|date:"d/m" }}</small>
                                         {% endif %}
                                     </div>
-                                    <div class="mt-2">
+                                    <div class="mt-2" data-i18n-skip>
                                         <strong>User Type:</strong> {{ logged_user.get_user_type_display }}<br>
                                         <strong>Designation:</strong> {{ logged_user.designation }}<br>
                                         <strong>Supervisor:</strong> {{ logged_user.under_supervision.username|default:'-' }}<br>

@@ -16,7 +16,7 @@
                                 <div class="col-12 col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <strong>{{ user_view.get_full_name }}</strong>
+                        <strong data-i18n-skip>{{ user_view.get_full_name }}</strong>
                     </div>
                                 <div class="card-body">
                                     <div class="tab-pane p-3 active show">
@@ -28,12 +28,12 @@
                                           </div>
                                         </div>
                                         <div>
-                                          <small class="text-muted">{{ user_view.get_full_name }}</small>
+                                          <small class="text-muted" data-i18n-skip>{{ user_view.get_full_name }}</small>
                                             {% if user_view.last_login %}
                                           <small class="text-muted float-right mt-1">Last login: {{ user_view.last_login|date:"H:i" }} in {{ user_view.last_login|date:"d/m" }}</small>
                                             {% endif %}
                                         </div>
-                                        <div class="mt-2">
+                                        <div class="mt-2" data-i18n-skip>
                                             <strong>User Type:</strong> {{ user_view.get_user_type_display }}<br>
                                             <strong>Designation:</strong> {{ user_view.designation }}<br>
                                             <strong>Supervisor:</strong> {{ user_view.under_supervision.username|default:'-' }}<br>
@@ -53,21 +53,21 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Username:</strong>
-                                    <p>{{ user_view.username }}</p>
+                                    <p data-i18n-skip>{{ user_view.username }}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Email:</strong>
-                                    <p>{{ user_view.email }}</p>
+                                    <p data-i18n-skip>{{ user_view.email }}</p>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>First Name:</strong>
-                                    <p>{{ user_view.first_name }}</p>
+                                    <p data-i18n-skip>{{ user_view.first_name }}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Last Name:</strong>
-                                    <p>{{ user_view.last_name }}</p>
+                                    <p data-i18n-skip>{{ user_view.last_name }}</p>
                                 </div>
                             </div>
                                         <div class="row">

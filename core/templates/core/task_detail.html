@@ -76,18 +76,18 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-8">
-                            <h5>{{ task.issue_action }}</h5>
+                            <h5 data-i18n-skip>{{ task.issue_action }}</h5>
                             
                             <div class="row mt-4">
                                 <div class="col-md-6">
                                     <table class="table table-borderless">
                                         <tr>
                                             <td><strong>Responsible:</strong></td>
-                                            <td>{{ task.responsible.get_full_name }}</td>
+                                            <td data-i18n-skip>{{ task.responsible.get_full_name }}</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Created By:</strong></td>
-                                            <td>{{ task.created_by.get_full_name }}</td>
+                                            <td data-i18n-skip>{{ task.created_by.get_full_name }}</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Priority:</strong></td>
@@ -242,7 +242,7 @@
                                             </span>
                                         </div>
                                         <div class="col-md-6">
-                                            <strong>Evaluated By:</strong> {{ task.evaluated_by.get_full_name }}
+                                            <strong>Evaluated By:</strong> <div data-i18n-skip>{{ task.evaluated_by.get_full_name }}</div>
                                         </div>
                                     </div>
                                     

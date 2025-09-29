@@ -47,6 +47,14 @@
   "footer": {
     "copyright": "Copyright"
   }
+  ,
+  "role": {
+    "info": {
+      "admin": "As an <strong>Admin</strong>, you can create tasks for any user in the system and manage all aspects of the project management system.",
+      "manager": "As a <strong>Manager</strong>, you can create tasks for your subordinates and manage your team's workflow.",
+      "employee": "As an <strong>Employee</strong>, you can create tasks for yourself to track your work progress."
+    }
+  }
 }
 
 

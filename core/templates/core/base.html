@@ -57,7 +57,7 @@
     </div>
     <ul class="nav navbar-nav ml-auto">
       {% if user.is_authenticated %}
-      <li class="text-white d-none d-md-inline">Hello, {{ user.username }}</li>
+      <li class="text-white d-none d-md-inline" data-i18n-skip>Hello, {{ user.username }}</li>
       {% else %}
       <li class="text-muted">
         <a href="{% url 'core:login' %}">sign in</a>

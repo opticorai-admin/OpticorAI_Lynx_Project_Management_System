@@ -58,6 +58,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="{{ form.issue_action.id_for_label }}">{{ form.issue_action.label }}</label>
+                                    <div data-i18n-skip>
                                     {{ form.issue_action }}
                                     {% if form.issue_action.errors %}
                                         <div class="alert alert-danger">
@@ -65,15 +66,19 @@
                                         </div>
                                     {% endif %}
                                 </div>
+                                </div>
                                 
                                 <div class="form-group">
                                     <label for="{{ form.responsible.id_for_label }}">{{ form.responsible.label }}</label>
+                                    <div data-i18n-skip>
                                     {{ form.responsible }}
+                                    
                                     {% if form.responsible.errors %}
                                         <div class="alert alert-danger">
                                             {{ form.responsible.errors }}
                                         </div>
                                     {% endif %}
+                                </div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -133,6 +138,7 @@
                                 
                                 <div class="form-group">
                                     <label for="{{ form.percentage_completion.id_for_label }}">{{ form.percentage_completion.label }}</label>
+                                    <div data-i18n-skip>
                                     {{ form.percentage_completion }}
                                     {% if form.percentage_completion.errors %}
                                         <div class="alert alert-danger">
@@ -140,15 +146,18 @@
                                         </div>
                                     {% endif %}
                                 </div>
+                                </div>
                                 
                                 <div class="form-group">
                                     <label for="{{ form.approval_status.id_for_label }}">{{ form.approval_status.label }}</label>
+                                    <div data-i18n-skip>
                                     {{ form.approval_status }}
                                     {% if form.approval_status.errors %}
                                         <div class="alert alert-danger">
                                             {{ form.approval_status.errors }}
                                         </div>
                                     {% endif %}
+                                </div>
                                 </div>
                                 
                                 <div class="form-group">

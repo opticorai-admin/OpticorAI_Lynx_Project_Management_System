@@ -90,6 +90,7 @@
                                                         </a>
                                                     </small>
                                                 {% endif %}
+                                            
                                             </div>
                                         </td>
                                         <td>
@@ -99,7 +100,7 @@
                                                          class="img-avatar img-avatar-sm mr-2" 
                                                          alt="{{ notification.sender.get_full_name }}">
                                                     <div>
-                                                        <div class="font-weight-bold">{{ notification.sender.get_full_name }}</div>
+                                                        <div class="font-weight-bold" data-i18n-skip>{{ notification.sender.get_full_name }}</div>
                                                         <small class="text-muted">{{ notification.sender.user_type|title }}</small>
                                                     </div>
                                                 </div>

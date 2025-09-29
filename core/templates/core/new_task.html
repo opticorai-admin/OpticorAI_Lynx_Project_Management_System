@@ -58,11 +58,11 @@
                         <div class="alert alert-info mb-4">
                             <h6><i class="fa fa-info-circle"></i> Role Information:</h6>
                             {% if user.user_type == 'admin' %}
-                                <p class="mb-0">As an <strong>Admin</strong>, you can create tasks for any user in the system and manage all aspects of the project management system.</p>
+                                <p class="mb-0" data-i18n="role.info.admin" data-i18n-html data-i18n-skip>As an <strong>Admin</strong>, you can create tasks for any user in the system and manage all aspects of the project management system.</p>
                             {% elif user.user_type == 'manager' %}
-                                <p class="mb-0">As a <strong>Manager</strong>, you can create tasks for your subordinates and manage your team's workflow.</p>
+                                <p class="mb-0" data-i18n="role.info.manager" data-i18n-html data-i18n-skip>As a <strong>Manager</strong>, you can create tasks for your subordinates and manage your team's workflow.</p>
                             {% else %}
-                                <p class="mb-0">As an <strong>Employee</strong>, you can create tasks for yourself to track your work progress.</p>
+                                <p class="mb-0" data-i18n="role.info.employee" data-i18n-html data-i18n-skip>As an <strong>Employee</strong>, you can create tasks for yourself to track your work progress.</p>
                             {% endif %}
                         </div>
                         <form method="post" enctype="multipart/form-data">
@@ -89,7 +89,7 @@
                                     
                                     <div class="form-group">
                                         <label for="{{ form.responsible.id_for_label }}">{{ form.responsible.label }}</label>
-                                        {{ form.responsible }}
+                                        <div data-i18n-skip>{{ form.responsible }}</div>
                                         {% if form.responsible.errors %}
                                             <div class="alert alert-danger">
                                                 {{ form.responsible.errors }}

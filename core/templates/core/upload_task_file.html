@@ -28,7 +28,7 @@
                         <div class="col-12">
                             <div class="alert alert-info">
                                 <h6><i class="fa fa-info-circle"></i> Task Information</h6>
-                                <p class="mb-1"><strong>Task:</strong> {{ task.issue_action|truncatechars:100 }}</p>
+                                <p class="mb-1"><strong>Task:</strong> <span data-i18n-skip>{{ task.issue_action|truncatechars:100 }}</span></p>
                                 <p class="mb-1"><strong>Status:</strong> 
                                     <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">
                                         {{ task.get_status_display }}

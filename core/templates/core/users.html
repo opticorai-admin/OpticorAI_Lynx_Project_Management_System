@@ -124,14 +124,14 @@
                                 </div>
                             </td>
                             <td class="text-nowrap" style="min-width:120px;">
-                                <div>{{ user1.get_full_name }}</div>
+                                <div data-i18n-skip>{{ user1.get_full_name }}</div>
                                 <div class="small text-muted">
                                 <span>Joined:</span> | {{ user1.date_joined|date:"F d, Y" }}
                                 </div>
                             </td>
                             <td class="text-nowrap d-none d-sm-table-cell" style="min-width:100px;">{{ user1.get_user_type_display }}</td>
                             <td class="text-nowrap d-none d-md-table-cell" style="min-width:110px;">{{ user1.designation }}</td>
-                            <td class="text-nowrap d-none d-md-table-cell" style="min-width:110px;">{{ user1.under_supervision.get_full_name|default:'-' }}</td>
+                            <td class="text-nowrap d-none d-md-table-cell" style="min-width:110px;" data-i18n-skip>{{ user1.under_supervision.get_full_name|default:'-' }}</td>
                             <!-- <td class="text-center text-nowrap d-none d-lg-table-cell" style="min-width:110px;">
                                 <span class="badge badge-pill badge-dark">{{ user1.task_set.all.count }}</span>
                             </td> -->
