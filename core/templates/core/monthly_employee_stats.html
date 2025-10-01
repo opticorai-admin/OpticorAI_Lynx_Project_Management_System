@@ -39,8 +39,8 @@
   <div class="card">
     <div class="card-body table-responsive">
       <div class="mb-3 d-flex flex-wrap gap-2">
-        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=excel" class="btn btn-success btn-sm mr-2"><i class="fa fa-file-excel-o"></i> Download Excel</a>
-        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=pdf" class="btn btn-danger btn-sm"><i class="fa fa-file-pdf-o"></i> Download PDF</a>
+        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=excel&lang=" class="btn btn-success btn-sm mr-2" data-export-link><i class="fa fa-file-excel-o"></i> Download Excel</a>
+        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=pdf&lang=" class="btn btn-danger btn-sm" data-export-link><i class="fa fa-file-pdf-o"></i> Download PDF</a>
       </div>
 
      
@@ -152,6 +152,21 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script src="{% static 'core/js/monthly_employee_stats.js' %}"></script>
 {% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    var lang = (function(){ try { return localStorage.getItem('ui.lang') || 'en'; } catch(e){ return 'en'; } })();
+    document.querySelectorAll('[data-export-link]').forEach(function(a){
+      if (a.href.indexOf('lang=') !== -1) {
+        a.href = a.href.replace(/lang=(?:[^&]*)?$/, 'lang=' + encodeURIComponent(lang));
+      } else {
+        var sep = a.href.indexOf('?') === -1 ? '?' : '&';
+        a.href = a.href + sep + 'lang=' + encodeURIComponent(lang);
+      }
+    });
+  } catch(e) {}
+});
+</script>
 {% endblock %}
 
 

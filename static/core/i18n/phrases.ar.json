@@ -487,7 +487,9 @@
   "Task Deleted successfully!":"تم حذف المهمة بنجاح!",
   "created a new task for themselves":"أنشأ مهمة جديدة لنفسه",
   "uploaded a file for task":"رفع ملف للمهمة",
-  "Evaluated By":"تم تقييمه بواسطة"
+  "Evaluated By":"تم تقييمه بواسطة",
+  "Employee Progress Score":"النتيجة المحسوبة للتقدم",
+  "All time (based on current filters)":"جميع الوقت (بناءً على المرشحات الحالية)"
 }
 
 

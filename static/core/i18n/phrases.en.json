@@ -487,7 +487,9 @@
   "Task Deleted successfully!":"Task Deleted successfully!",
   "created a new task for themselves":"created a new task for themselves",
   "uploaded a file for task":"uploaded a file for task",
-  "Evaluated By":"Evaluated By"
+  "Evaluated By":"Evaluated By",
+  "Employee Progress Score":"Employee Progress Score",
+  "All time (based on current filters)":"All time (based on current filters)"
 }
 
 

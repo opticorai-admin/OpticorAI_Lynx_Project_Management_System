@@ -1173,7 +1173,71 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
 
         # Optional export (excel/pdf)
         export_type = request.GET.get('export', '').strip().lower()
+        export_lang = request.GET.get('lang', 'en')
         if export_type in ('excel', 'pdf'):
+            # Load frontend dictionaries for accurate translations
+            is_ar = (export_lang == 'ar')
+            def _load_phrases(lang_code):
+                try:
+                    from django.contrib.staticfiles import finders as _static_finders
+                    import json as _json
+                    paths = [
+                        _static_finders.find(f'core/i18n/{lang_code}.json'),
+                        _static_finders.find(f'core/i18n/phrases.{lang_code}.json'),
+                    ]
+                    result = {}
+                    for p in paths:
+                        if p and os.path.isfile(p):
+                            with open(p, 'r', encoding='utf-8') as fh:
+                                try:
+                                    result.update(_json.load(fh) or {})
+                                except Exception:
+                                    pass
+                    return result
+                except Exception:
+                    return {}
+            phrases_map = _load_phrases('ar' if is_ar else 'en')
+            def tr(text):
+                if not text:
+                    return ''
+                v = phrases_map.get(text)
+                if isinstance(v, str):
+                    return v
+                return text
+            def fmt_date(d):
+                try:
+                    if not d:
+                        return ''
+                    if is_ar:
+                        months = {
+                            1: tr('January') or 'يناير', 2: tr('February') or 'فبراير', 3: tr('March') or 'مارس',
+                            4: tr('April') or 'أبريل', 5: tr('May') or 'مايو', 6: tr('June') or 'يونيو',
+                            7: tr('July') or 'يوليو', 8: tr('August') or 'أغسطس', 9: tr('September') or 'سبتمبر',
+                            10: tr('October') or 'أكتوبر', 11: tr('November') or 'نوفمبر', 12: tr('December') or 'ديسمبر'
+                        }
+                        return f"{d.day:02d} {months.get(d.month, '')} {d.year}"
+                    return str(d)
+                except Exception:
+                    return str(d)
+            # Localized labels
+            labels = {
+                'title': tr('Monthly Employee Statistics') or 'Monthly Employee Statistics',
+                'period': (tr('Period') + ':') if tr('Period') != 'Period' else ('الفترة:' if is_ar else 'Period:'),
+                'headers': [
+                    tr('Employee') or 'Employee',
+                    tr('Total Assigned') or 'Total Assigned',
+                    tr('Completed') or 'Completed',
+                    tr('Open') or 'Open',
+                    tr('Closed') or 'Closed',
+                    tr('Due') or 'Due',
+                    tr('High') or 'High',
+                    tr('Medium') or 'Medium',
+                    tr('Low') or 'Low',
+                    tr('Completion Rate') or 'Completion Rate',
+                    tr('Avg Final Score') or 'Avg Final Score',
+                    tr('Timeliness (avg days vs target)') or 'Timeliness (avg days vs target)'
+                ]
+            }
             # Flatten stats into rows
             rows = []
             for row in stats:
@@ -1193,21 +1257,25 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     '-' if row['avg_timeliness_days'] is None else row['avg_timeliness_days'],
                 ])
 
-            period_label = f"{start_date} — {end_date}"
+            period_label = f"{fmt_date(start_date)} — {fmt_date(end_date)}"
 
             if export_type == 'excel':
                 wb = Workbook()
                 ws = wb.active
-                ws.title = 'Monthly Stats'
-                ws.append([f"Monthly Employee Statistics ({period_label})"])
+                ws.title = labels['title']
+                try:
+                    ws.sheet_view.rightToLeft = bool(is_ar)
+                except Exception:
+                    pass
+                ws.append([f"{labels['title']} ({period_label})"])
                 ws.append([])
-                headers = ['Employee', 'Total Assigned', 'Completed', 'Open', 'Closed', 'Due', 'High', 'Medium', 'Low', 'Completion Rate', 'Avg Final Score', 'Timeliness (avg days vs target)']
+                headers = labels['headers']
                 ws.append(headers)
                 for r in rows:
                     ws.append(r)
                 # Totals row
                 ws.append([])
-                ws.append(['Totals', sum(x[1] for x in rows), sum(x[2] for x in rows), aggregate_open, aggregate_closed, aggregate_due, sum(x[6] for x in rows), sum(x[7] for x in rows), sum(x[8] for x in rows), '', '', ''])
+                ws.append([tr('Totals') or 'Totals', sum(x[1] for x in rows), sum(x[2] for x in rows), aggregate_open, aggregate_closed, aggregate_due, sum(x[6] for x in rows), sum(x[7] for x in rows), sum(x[8] for x in rows), '', '', ''])
                 output = BytesIO()
                 wb.save(output)
                 output.seek(0)
@@ -1230,16 +1298,69 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 buffer = BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
                 styles = getSampleStyleSheet()
-                # Ensure consistent readable fonts and enable wrapping via Paragraphs
-                styles['Normal'].fontName = 'Helvetica'
+                # Ensure readable fonts; register Arabic fonts if needed
+                header_font_name = 'Helvetica-Bold'
+                _arabic_base_registered = False
+                if is_ar:
+                    try:
+                        from django.contrib.staticfiles import finders as _static_finders
+                        from reportlab.pdfbase import pdfmetrics
+                        from reportlab.pdfbase.ttfonts import TTFont
+                        win_fonts = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
+                        def _first_existing(paths):
+                            for p in paths:
+                                try:
+                                    if p and os.path.isfile(p):
+                                        return p
+                                except Exception:
+                                    pass
+                            return None
+                        reg_font = _first_existing([
+                            _static_finders.find('core/fonts/DejaVuSans.ttf'),
+                            _static_finders.find('core/fonts/NotoNaskhArabic-Regular.ttf'),
+                            _static_finders.find('core/fonts/Amiri-Regular.ttf'),
+                            os.path.join(win_fonts, 'DejaVuSans.ttf'),
+                            os.path.join(win_fonts, 'NotoNaskhArabic-Regular.ttf'),
+                            os.path.join(win_fonts, 'Amiri-Regular.ttf'),
+                            os.path.join(win_fonts, 'tahoma.ttf'),
+                            os.path.join(win_fonts, 'arialuni.ttf'),
+                        ])
+                        bold_font = _first_existing([
+                            _static_finders.find('core/fonts/DejaVuSans-Bold.ttf'),
+                            _static_finders.find('core/fonts/NotoNaskhArabic-Bold.ttf'),
+                            _static_finders.find('core/fonts/Amiri-Bold.ttf'),
+                            os.path.join(win_fonts, 'DejaVuSans-Bold.ttf'),
+                            os.path.join(win_fonts, 'NotoNaskhArabic-Bold.ttf'),
+                            os.path.join(win_fonts, 'Amiri-Bold.ttf'),
+                            os.path.join(win_fonts, 'tahomabd.ttf'),
+                        ])
+                        if reg_font:
+                            pdfmetrics.registerFont(TTFont('ArabicBase', reg_font))
+                            styles['Normal'].fontName = 'ArabicBase'
+                            _arabic_base_registered = True
+                        else:
+                            styles['Normal'].fontName = 'Helvetica'
+                        if bold_font:
+                            pdfmetrics.registerFont(TTFont('ArabicBase-Bold', bold_font))
+                            header_font_name = 'ArabicBase-Bold'
+                            styles['Heading1'].fontName = header_font_name
+                        else:
+                            # Fallback to regular Arabic font for headings to avoid missing glyph squares
+                            if _arabic_base_registered:
+                                header_font_name = 'ArabicBase'
+                                styles['Heading1'].fontName = header_font_name
+                    except Exception:
+                        styles['Normal'].fontName = 'Helvetica'
+                        styles['Heading1'].fontName = header_font_name
+                else:
+                    styles['Normal'].fontName = 'Helvetica'
                 styles['Normal'].fontSize = 9
-                styles['Heading1'].fontName = 'Helvetica-Bold'
                 brand_style = ParagraphStyle(
                     'Brand',
                     parent=styles['Heading1'],
                     alignment=1,
                     textColor=colors.HexColor('#0B5ED7'),
-                    fontName='Helvetica-Bold',
+                    fontName=(styles['Heading1'].fontName or header_font_name),
                     fontSize=20,
                     leading=24,
                 )
@@ -1268,30 +1389,27 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     pass
                 story.append(Paragraph('Lynex', brand_style))
                 story.append(HRFlowable(width='30%', thickness=1, color=colors.HexColor('#0B5ED7'), spaceBefore=4, spaceAfter=8, hAlign='CENTER'))
-                story.append(Paragraph('Monthly Employee Statistics', title_style))
-                story.append(Paragraph(f'Period: {period_label}', styles['Normal']))
+                # Arabic shaping helper
+                def _ar_shape(txt):
+                    if not (is_ar and txt):
+                        return '' if txt is None else str(txt)
+                    try:
+                        import arabic_reshaper  # type: ignore
+                        from bidi.algorithm import get_display  # type: ignore
+                        return get_display(arabic_reshaper.reshape(str(txt)))
+                    except Exception:
+                        return str(txt)
+                story.append(Paragraph(_ar_shape(labels['title']), title_style))
+                story.append(Paragraph(_ar_shape(f"{labels['period']} {period_label}"), styles['Normal']))
                 story.append(Spacer(1, 8))
 
                 # Build header with Paragraphs to allow wrapping
-                header_cells = [
-                    'Employee',
-                    'Total Assigned',
-                    'Completed',
-                    'Open',
-                    'Closed',
-                    'Due',
-                    'High',
-                    'Medium',
-                    'Low',
-                    'Completion Rate',
-                    'Avg Final Score',
-                    'Timeliness (avg days vs target)',
-                ]
-                data = [[Paragraph(text, styles['Normal']) for text in header_cells]]
+                header_cells = labels['headers']
+                data = [[Paragraph(_ar_shape(text), styles['Normal']) for text in header_cells]]
 
                 # Convert each data cell to Paragraph to ensure long values wrap
                 for r in rows:
-                    data.append([Paragraph(str(c), styles['Normal']) for c in r])
+                    data.append([Paragraph(_ar_shape(str(c)), styles['Normal']) for c in r])
 
                 table = Table(
                     data,
@@ -1313,13 +1431,13 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 )
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTNAME', (0,0), (-1,0), header_font_name),
                     ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
                     ('FONTSIZE', (0,0), (-1,-1), 9),
                     ('VALIGN', (0,0), (-1,-1), 'TOP'),
                     ('ALIGN', (0,0), (-1,0), 'CENTER'),
                     ('ALIGN', (1,1), (-1,-1), 'CENTER'),
-                    ('ALIGN', (0,1), (0,-1), 'LEFT'),
+                    ('ALIGN', (0,1), (0,-1), 'RIGHT' if is_ar else 'LEFT'),
                     ('BOTTOMPADDING', (0,0), (-1,-1), 4),
                     ('TOPPADDING', (0,0), (-1,-1), 4),
                     ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.white]),
@@ -1328,7 +1446,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
 
                 # --- Charts section ---
                 story.append(Spacer(1, 12))
-                story.append(Paragraph('Charts', styles['Heading2']))
+                story.append(Paragraph(_ar_shape(tr('Charts') or 'Charts'), styles['Heading2']))
 
                 brand_yellow = colors.HexColor('#ffc107')
                 brand_green = colors.HexColor('#28a745')
@@ -1343,7 +1461,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     status_chart.y = 60
                     status_chart.height = 150
                     status_chart.width = 320
-                    status_chart.categoryAxis.categoryNames = ['Open', 'Closed', 'Due']
+                    status_chart.categoryAxis.categoryNames = [tr('Open') or 'Open', tr('Closed') or 'Closed', tr('Due') or 'Due']
                     status_chart.categoryAxis.labels.boxAnchor = 'ne'
                     status_chart.valueAxis.valueMin = 0
                     try:
@@ -1364,7 +1482,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     status_draw.add(status_chart)
                     # Axis titles for clarity
                     try:
-                        status_draw.add(String(210, 34, 'Status', fontSize=9))
+                        status_draw.add(String(210, 34, tr('Status') or 'Status', fontSize=9))
                     except Exception:
                         pass
                     try:
@@ -1374,7 +1492,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         ylbl.boxAnchor = 'c'
                         ylbl.fontSize = 9
                         try:
-                            ylbl.setText('Number of Tasks')
+                            ylbl.setText(tr('Number of Tasks') or 'Number of Tasks')
                         except Exception:
                             ylbl.text = 'Number of Tasks'
                         status_draw.add(ylbl)
@@ -1383,9 +1501,9 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     # Horizontal legend (color explanation)
                     try:
                         legend_items = [
-                            (brand_yellow, 'Open'),
-                            (brand_green, 'Closed'),
-                            (brand_red, 'Due'),
+                            (brand_yellow, tr('Open') or 'Open'),
+                            (brand_green, tr('Closed') or 'Closed'),
+                            (brand_red, tr('Due') or 'Due'),
                         ]
                         start_x = 160
                         y = 10
@@ -1397,7 +1515,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     except Exception:
                         pass
                     story.append(Spacer(1, 6))
-                    story.append(Paragraph('Monthly Status', styles['Heading3']))
+                    story.append(Paragraph(_ar_shape(tr('Monthly Status') or 'Monthly Status'), styles['Heading3']))
                     story.append(status_draw)
                     # Force charts onto clean pages to avoid layout overflow
                     story.append(PageBreak())
@@ -1453,8 +1571,8 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         emp_draw.add(emp_chart)
                         # Axis titles
                         try:
-                            emp_draw.add(String(260, 20, 'Employees', fontSize=9))
-                            emp_draw.add(String(15, 180, 'Number of Tasks', angle=90, fontSize=9))
+                            emp_draw.add(String(260, 20, tr('Employees') or 'Employees', fontSize=9))
+                            emp_draw.add(String(15, 180, tr('Number of Tasks') or 'Number of Tasks', angle=90, fontSize=9))
                         except Exception:
                             pass
                         emp_legend = Legend()
@@ -1468,7 +1586,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         ]
                         emp_draw.add(emp_legend)
                         story.append(Spacer(1, 6))
-                        story.append(Paragraph('Tasks by Employee (stacked)', styles['Heading3']))
+                        story.append(Paragraph(_ar_shape(tr('Tasks by Employee (stacked)') or 'Tasks by Employee (stacked)'), styles['Heading3']))
                         story.append(emp_draw)
                         story.append(PageBreak())
                 except Exception:
@@ -1627,7 +1745,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                             pass
                         # Axis titles and month tick labels (bring Month closer to plot)
                         try:
-                            lp_draw.add(String(240, 80, 'Month', fontSize=9))
+                            lp_draw.add(String(240, 80, tr('Month') or 'Month', fontSize=9))
                             ylbl2 = Label()
                             ylbl2.setOrigin(14, line.y + (line.height / 2.0))
                             ylbl2.angle = 90
@@ -1677,7 +1795,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         except Exception:
                             pass
                         story.append(Spacer(1, 6))
-                        story.append(Paragraph('Monthly Task Creation Trend', styles['Heading3']))
+                        story.append(Paragraph(_ar_shape(tr('Monthly Task Creation Trend') or 'Monthly Task Creation Trend'), styles['Heading3']))
                         story.append(lp_draw)
                 except Exception:
                     pass
@@ -2788,6 +2906,7 @@ class ProgressReportView(LoginRequiredMixin, View):
         kpi_filter = request.GET.get('kpi', '')
         search_query = request.GET.get('search', '')
         export_type = request.GET.get('export', '')
+        export_lang = request.GET.get('lang', 'en')
         selected_employee = None
         tasks = Task.objects.none()
         available_kpis = KPI.objects.filter(created_by=user)
@@ -2848,26 +2967,104 @@ class ProgressReportView(LoginRequiredMixin, View):
                 selected_employee = None
                 tasks = Task.objects.none()
         if export_type and selected_employee:
+            # Localization using the same frontend dictionaries for accuracy
+            is_ar = (export_lang == 'ar')
+            def _load_phrases(lang_code):
+                try:
+                    from django.contrib.staticfiles import finders as _static_finders
+                    import json as _json
+                    paths = [
+                        _static_finders.find(f'core/i18n/{lang_code}.json'),
+                        _static_finders.find(f'core/i18n/phrases.{lang_code}.json'),
+                    ]
+                    result = {}
+                    for p in paths:
+                        if p and os.path.isfile(p):
+                            with open(p, 'r', encoding='utf-8') as fh:
+                                result.update(_json.load(fh) or {})
+                    return result
+                except Exception:
+                    return {}
+            phrases_map = _load_phrases('ar' if is_ar else 'en')
+            def tr(text):
+                if not text:
+                    return ''
+                # direct key match
+                v = phrases_map.get(text)
+                if isinstance(v, str):
+                    return v
+                # nested dicts are not used here; fallback
+                return text
+            # Labels via dictionaries to match frontend
+            labels = {
+                'title': tr('Progress Report'),
+                'for': tr('for') if tr('for') != 'for' else ('لـ' if is_ar else 'for'),
+                'period': tr('Period') + ':' if tr('Period') != 'Period' else ('الفترة:' if is_ar else 'Period:'),
+                'emp_progress_score': tr('Employee Progress Score:') if tr('Employee Progress Score:') != 'Employee Progress Score:' else ('درجة تقدم الموظف:' if is_ar else 'Employee Progress Score:'),
+                'columns': [
+                    tr('Task') if tr('Task') != 'Task' else ('المهمة' if is_ar else 'Task'),
+                    tr('Status') if tr('Status') != 'Status' else ('الحالة' if is_ar else 'Status'),
+                    tr('KPI') if tr('KPI') != 'KPI' else ('مؤشر الأداء' if is_ar else 'KPI'),
+                    tr('Priority') if tr('Priority') != 'Priority' else ('الأولوية' if is_ar else 'Priority'),
+                    tr('Start Date') if tr('Start Date') != 'Start Date' else ('تاريخ البدء' if is_ar else 'Start Date'),
+                    tr('Close Date') if tr('Close Date') != 'Close Date' else ('تاريخ الإغلاق' if is_ar else 'Close Date'),
+                    tr('Final Score (%)') if tr('Final Score (%)') != 'Final Score (%)' else ('النتيجة النهائية (%)' if is_ar else 'Final Score (%)')
+                ]
+            }
+            # Status translation using dictionaries
+            def tr_status(s):
+                if is_ar:
+                    m = {'Open': tr('Open') or 'مفتوح', 'Closed': tr('Closed') or 'مغلق', 'Due': tr('Due') or 'مستحق'}
+                    return m.get(s, s)
+                return s
+            # Pretty date using month names from phrases if present
+            def fmt_date(d):
+                try:
+                    if not d:
+                        return ''
+                    if is_ar:
+                        months = {
+                            1: tr('January') or 'يناير', 2: tr('February') or 'فبراير', 3: tr('March') or 'مارس',
+                            4: tr('April') or 'أبريل', 5: tr('May') or 'مايو', 6: tr('June') or 'يونيو',
+                            7: tr('July') or 'يوليو', 8: tr('August') or 'أغسطس', 9: tr('September') or 'سبتمبر',
+                            10: tr('October') or 'أكتوبر', 11: tr('November') or 'نوفمبر', 12: tr('December') or 'ديسمبر'
+                        }
+                        return f"{d.day:02d} {months.get(d.month, '')} {d.year}"
+                    return str(d)
+                except Exception:
+                    return str(d)
             if export_type == 'excel':
                 # Excel export using openpyxl
                 wb = Workbook()
                 ws = wb.active
-                ws.title = 'Progress Report'
+                ws.title = labels['title']
+                # For Arabic, set sheet view RTL so columns render right-to-left in Excel-compatible viewers
+                try:
+                    ws.sheet_view.rightToLeft = bool(is_ar)
+                except Exception:
+                    pass
                 # Summary header
-                ws.append([f"Progress Report for {selected_employee.get_full_name()}"])
-                ws.append([f"Period: {progress_period_label or (start_date and end_date and f'{start_date} to {end_date}') or 'Not specified'}"])
+                ws.append([f"{tr('Progress Report of')} {selected_employee.get_full_name()}"])
+                if start_date and end_date and not progress_period_label:
+                    range_text = f"{start_date} {'إلى' if is_ar else 'to'} {end_date}"
+                    ws.append([f"{labels['period']} {range_text}"])
+                else:
+                    alt = tr('All time (based on current filters)') if is_ar else tr('All time (based on current filters)') or 'All time (based on current filters)'
+                    ws.append([alt])
                 if employee_progress_score is not None:
-                    ws.append([f"Employee Progress Score: {employee_progress_score}%"])
+                    ws.append([f"{labels['emp_progress_score']} {employee_progress_score}%"])
                 ws.append([])
-                ws.append(['Task', 'Status', 'KPI', 'Priority', 'Start Date', 'Close Date', 'Final Score (%)'])
+                ws.append(labels['columns'])
                 for task in tasks:
+                    status_disp = tr_status(task.get_status_display())
+                    close_date_text = fmt_date(task.close_date) if task.close_date else ''
                     ws.append([
                         task.issue_action,
-                        task.get_status_display(),
-                        str(task.kpi) if task.kpi else '',
-                        task.priority.name if task.priority else '-',
-                        str(task.start_date),
-                        str(task.close_date),
+                        status_disp,
+                        (task.kpi.name if getattr(task, 'kpi', None) else ''),
+                        (task.priority.name if getattr(task, 'priority', None) else '-'),
+                        fmt_date(task.start_date),
+                        close_date_text,
                         '' if task.final_score is None else task.final_score
                     ])
                 output = BytesIO()
@@ -2885,19 +3082,81 @@ class ProgressReportView(LoginRequiredMixin, View):
                 from reportlab.lib import colors
                 from reportlab.lib.units import inch
                 from reportlab.lib.enums import TA_LEFT
+                from reportlab.pdfbase import pdfmetrics
+                from reportlab.pdfbase.ttfonts import TTFont
 
                 buffer = BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
                 styles = getSampleStyleSheet()
-                styles['Normal'].fontName = 'Helvetica'
+                # Try to use fonts that support Arabic if needed
+                header_font_name = 'Helvetica-Bold'
+                if is_ar:
+                    try:
+                        from django.contrib.staticfiles import finders as _static_finders
+                        # Helper to find the first existing font file from candidates
+                        def _first_existing(paths):
+                            for p in paths:
+                                try:
+                                    if p and os.path.isfile(p):
+                                        return p
+                                except Exception:
+                                    pass
+                            return None
+                        # Candidate locations (static and system fonts on Windows)
+                        win_fonts = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
+                        # Regular font candidates
+                        reg_candidates = [
+                            _static_finders.find('core/fonts/DejaVuSans.ttf'),
+                            _static_finders.find('core/fonts/NotoNaskhArabic-Regular.ttf'),
+                            _static_finders.find('core/fonts/Amiri-Regular.ttf'),
+                            os.path.join(win_fonts, 'DejaVuSans.ttf'),
+                            os.path.join(win_fonts, 'NotoNaskhArabic-Regular.ttf'),
+                            os.path.join(win_fonts, 'Amiri-Regular.ttf'),
+                            os.path.join(win_fonts, 'tahoma.ttf'),
+                            os.path.join(win_fonts, 'arialuni.ttf'),
+                            os.path.join(win_fonts, 'ARIALUNI.TTF'),
+                            os.path.join(win_fonts, 'segoeui.ttf'),
+                        ]
+                        bold_candidates = [
+                            _static_finders.find('core/fonts/DejaVuSans-Bold.ttf'),
+                            _static_finders.find('core/fonts/NotoNaskhArabic-Bold.ttf'),
+                            _static_finders.find('core/fonts/Amiri-Bold.ttf'),
+                            os.path.join(win_fonts, 'DejaVuSans-Bold.ttf'),
+                            os.path.join(win_fonts, 'NotoNaskhArabic-Bold.ttf'),
+                            os.path.join(win_fonts, 'Amiri-Bold.ttf'),
+                            os.path.join(win_fonts, 'tahomabd.ttf'),
+                            os.path.join(win_fonts, 'segoeuib.ttf'),
+                        ]
+                        reg_font = _first_existing(reg_candidates)
+                        bold_font = _first_existing(bold_candidates)
+                        if reg_font:
+                            pdfmetrics.registerFont(TTFont('ArabicBase', reg_font))
+                            styles['Normal'].fontName = 'ArabicBase'
+                        else:
+                            styles['Normal'].fontName = 'Helvetica'
+                        if bold_font:
+                            pdfmetrics.registerFont(TTFont('ArabicBase-Bold', bold_font))
+                            header_font_name = 'ArabicBase-Bold'
+                            styles['Heading1'].fontName = header_font_name
+                            styles['Heading2'].fontName = header_font_name
+                        else:
+                            styles['Heading1'].fontName = header_font_name
+                            styles['Heading2'].fontName = header_font_name
+                    except Exception:
+                        styles['Normal'].fontName = 'Helvetica'
+                        styles['Heading1'].fontName = header_font_name
+                        styles['Heading2'].fontName = header_font_name
+                else:
+                    styles['Normal'].fontName = 'Helvetica'
+                    styles['Heading1'].fontName = header_font_name
+                    styles['Heading2'].fontName = header_font_name
                 styles['Normal'].fontSize = 9
-                styles['Heading1'].fontName = 'Helvetica-Bold'
                 brand_style = ParagraphStyle(
                     'Brand',
                     parent=styles['Heading1'],
                     alignment=1,
                     textColor=colors.HexColor('#0B5ED7'),
-                    fontName='Helvetica-Bold',
+                    fontName=(styles['Heading1'].fontName or 'Helvetica-Bold'),
                     fontSize=20,
                     leading=24,
                 )
@@ -2926,44 +3185,58 @@ class ProgressReportView(LoginRequiredMixin, View):
 
                 story.append(Paragraph('Lynex', brand_style))
                 story.append(HRFlowable(width='30%', thickness=1, color=colors.HexColor('#0B5ED7'), spaceBefore=4, spaceAfter=8, hAlign='CENTER'))
-                title = Paragraph(f"Progress Report for {selected_employee.get_full_name()}", title_style)
+                # Arabic shaping (reshape + bidi) when language is Arabic and libs are available
+                def _ar_shape(txt):
+                    if not (is_ar and txt):
+                        return '' if txt is None else str(txt)
+                    try:
+                        import arabic_reshaper  # type: ignore
+                        from bidi.algorithm import get_display  # type: ignore
+                        return get_display(arabic_reshaper.reshape(str(txt)))
+                    except Exception:
+                        return str(txt)
+                # Title: "Progress Report of {EmployeeName}"
+                title = Paragraph(_ar_shape(f"{tr('Progress Report of')} {selected_employee.get_full_name()}"), title_style)
                 story.append(title)
-                if progress_period_label or (start_date and end_date):
-                    period_text = f"Period: {progress_period_label or f'{start_date} to {end_date}'}"
+                # Period line
+                if start_date and end_date and not progress_period_label:
+                    period_range = f"{start_date} {'إلى' if is_ar else 'to'} {end_date}"
+                    period_text = _ar_shape(f"{labels['period']} {period_range}")
                     story.append(Spacer(1, 6))
                     story.append(Paragraph(period_text, styles['Normal']))
+                else:
+                    # All time based on filters
+                    at = tr('All time (based on current filters)') or ('الفترة (استنادًا إلى عوامل التصفية الحالية)' if is_ar else 'All time (based on current filters)')
+                    story.append(Spacer(1, 6))
+                    story.append(Paragraph(_ar_shape(at), styles['Normal']))
                 if employee_progress_score is not None:
                     story.append(Spacer(1, 6))
-                    story.append(Paragraph(f"Employee Progress Score: {employee_progress_score}%", styles['Normal']))
+                    story.append(Paragraph(_ar_shape(f"{labels['emp_progress_score']} {employee_progress_score}%"), styles['Normal']))
                 story.append(Spacer(1, 12))
-
-                data = [[
-                    Paragraph('Task', styles['Normal']),
-                    Paragraph('Status', styles['Normal']),
-                    Paragraph('KPI', styles['Normal']),
-                    Paragraph('Priority', styles['Normal']),
-                    Paragraph('Start Date', styles['Normal']),
-                    Paragraph('Close Date', styles['Normal']),
-                    Paragraph('Final Score (%)', styles['Normal']),
-                ]]
+                # Header row
+                data = [[Paragraph(_ar_shape(col), styles['Normal']) for col in labels['columns']]]
                 for task in tasks:
+                    status_disp = tr_status(task.get_status_display())
+                    close_date_text = fmt_date(task.close_date) if task.close_date else ''
                     data.append([
-                        Paragraph(task.issue_action or '', styles['Normal']),
-                        Paragraph(task.get_status_display(), styles['Normal']),
-                        Paragraph(str(task.kpi) if task.kpi else '', styles['Normal']),
-                        Paragraph(task.priority.name if task.priority else '-', styles['Normal']),
-                        Paragraph(str(task.start_date), styles['Normal']),
-                        Paragraph(str(task.close_date), styles['Normal']),
-                        Paragraph('-' if task.final_score is None else str(int(round(task.final_score))), styles['Normal']),
+                        Paragraph(_ar_shape(task.issue_action or ''), styles['Normal']),
+                        Paragraph(_ar_shape(status_disp), styles['Normal']),
+                        Paragraph(_ar_shape(task.kpi.name if getattr(task, 'kpi', None) else ''), styles['Normal']),
+                        Paragraph(_ar_shape(task.priority.name if getattr(task, 'priority', None) else '-'), styles['Normal']),
+                        Paragraph(_ar_shape(fmt_date(task.start_date)), styles['Normal']),
+                        Paragraph(_ar_shape(close_date_text), styles['Normal']),
+                        Paragraph(_ar_shape('-' if task.final_score is None else str(int(round(task.final_score)))), styles['Normal']),
                     ])
 
                 table = Table(data, repeatRows=1, colWidths=[2.5*inch, 0.9*inch, 1.0*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1.0*inch])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTNAME', (0,0), (-1,0), header_font_name),
                     ('FONTSIZE', (0,0), (-1,-1), 9),
                     ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
                     ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                    # Right-align when Arabic for readability
+                    ('ALIGN', (0,0), (-1,-1), 'RIGHT' if is_ar else 'LEFT'),
                 ]))
                 story.append(table)
 

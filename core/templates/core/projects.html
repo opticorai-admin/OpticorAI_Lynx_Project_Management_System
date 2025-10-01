@@ -244,7 +244,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="card-title" data-i18n-skip>{{ task.issue_action|truncatechars:50 }}</h6>
-                                <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}">
+                                <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}" data-i18n-skip>
                                     {{ task.get_status_display }}
                                 </span>
                             </div>
@@ -254,11 +254,11 @@
                                     <strong>Responsible:</strong> <div data-i18n-skip>{{ task.responsible.get_full_name }}</div><br>
                                     <strong>Priority:</strong> 
                                     {% if task.priority %}
-                                        <span class="badge badge-{% if task.priority.code == 'high' %}danger{% elif task.priority.code == 'medium' %}warning{% else %}info{% endif %}">
+                                        <span class="badge badge-{% if task.priority.code == 'high' %}danger{% elif task.priority.code == 'medium' %}warning{% else %}info{% endif %}" data-i18n-skip>
                                             {{ task.priority.name }}
                                         </span>
                                     {% else %}
-                                        <span class="badge badge-secondary">-</span>
+                                        <span class="badge badge-secondary" data-i18n-skip>-</span>
                                     {% endif %}<br>
                                     <strong>KPI:</strong> {% if task.kpi %}{{ task.kpi.name }}{% else %}-{% endif %}<br>
                                     <strong>Close Date:</strong> {{ task.close_date }}
