@@ -9,26 +9,6 @@
       try { return JSON.parse(el.textContent || el.innerText || 'null'); } catch (e) { return null; }
     }
 
-    // Translation function for Arabic support
-    function tr(text) {
-      var lang = (function(){ try { return localStorage.getItem('ui.lang') || 'en'; } catch(e){ return 'en'; } })();
-      if (lang !== 'ar') return text;
-      
-      var translations = {
-        'Monthly Task Status': 'حالة المهام شهريا',
-        'Task Priority Distribution': 'توزيع الأولويات للمهام',
-        'Tasks by Employee': 'المهام حسب الموظف',
-        'Monthly Task Creation Trend': 'تدفق المهام شهريا',
-        'Status': 'الحالة',
-        'Number of Tasks': 'عدد المهام',
-        'Employees': 'الموظفون',
-        'Month': 'شهر',
-        'Tasks': 'المهام'
-      };
-      
-      return translations[text] || text;
-    }
-
     function baseGrid() {
       return {
         strokeDashArray: 3,
@@ -48,10 +28,10 @@
       if (!el || !data || !data.datasets || !data.datasets.length) return;
       var options = {
         chart: { type: 'bar', height: 280, toolbar: { show: false } },
-        title: { text: tr('Monthly Task Status'), align: 'center' },
-        series: [{ name: data.datasets[0].label || tr('Tasks'), data: data.datasets[0].data }],
-        xaxis: { categories: data.labels, labels: { style: { fontSize: '12px' } }, title: { text: tr('Status') } },
-        yaxis: { title: { text: tr('Number of Tasks') } },
+        title: { text: 'Monthly Task Status', align: 'center' },
+        series: [{ name: data.datasets[0].label || 'Tasks', data: data.datasets[0].data }],
+        xaxis: { categories: data.labels, labels: { style: { fontSize: '12px' } }, title: { text: 'Status' } },
+        yaxis: { title: { text: 'Number of Tasks' } },
         plotOptions: { bar: { borderRadius: 6, columnWidth: '45%', distributed: true } },
         dataLabels: { enabled: true, style: { fontSize: '12px' } },
         colors: ['#ffc107', '#198754', '#dc3545'],
@@ -67,7 +47,7 @@
       if (!el || !data || !data.datasets || !data.datasets.length) return;
       var options = {
         chart: { type: 'donut', height: 280 },
-        title: { text: tr('Task Priority Distribution'), align: 'center' },
+        title: { text: 'Task Priority Distribution', align: 'center' },
         series: data.datasets[0].data,
         labels: data.labels,
         colors: data.datasets[0].backgroundColor,
@@ -84,10 +64,10 @@
       var series = (data.datasets || []).map(function (ds) { return { name: ds.label, data: ds.data }; });
       var options = {
         chart: { type: 'bar', stacked: true, height: 340, toolbar: { show: false } },
-        title: { text: tr('Tasks by Employee'), align: 'center' },
+        title: { text: 'Tasks by Employee', align: 'center' },
         series: series,
-        xaxis: { categories: data.labels, labels: { rotateAlways: false, trim: true, style: { fontSize: '12px' } }, title: { text: tr('Employees') } },
-        yaxis: { title: { text: tr('Number of Tasks') } },
+        xaxis: { categories: data.labels, labels: { rotateAlways: false, trim: true, style: { fontSize: '12px' } }, title: { text: 'Employees' } },
+        yaxis: { title: { text: 'Number of Tasks' } },
         plotOptions: { bar: { borderRadius: 6, columnWidth: (data.meta && data.meta.xaxis === 'months') ? '35%' : '50%' } },
         legend: baseLegend(),
         dataLabels: { enabled: false },
@@ -104,10 +84,10 @@
       var series = (data.datasets || []).map(function (ds) { return { name: ds.label, data: ds.data }; });
       var options = {
         chart: { type: 'line', height: 340, toolbar: { show: false } },
-        title: { text: tr('Monthly Task Creation Trend'), align: 'center' },
+        title: { text: 'Monthly Task Creation Trend', align: 'center' },
         series: series,
-        xaxis: { categories: data.labels, tickPlacement: 'on', labels: { style: { fontSize: '12px' } }, title: { text: tr('Month') } },
-        yaxis: { title: { text: tr('Number of Tasks') } },
+        xaxis: { categories: data.labels, tickPlacement: 'on', labels: { style: { fontSize: '12px' } }, title: { text: 'Month' } },
+        yaxis: { title: { text: 'Number of Tasks' } },
         dataLabels: { enabled: false },
         stroke: { width: 2, curve: 'smooth' },
         legend: baseLegend(),

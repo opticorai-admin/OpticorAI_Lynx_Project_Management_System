@@ -1,0 +1,15 @@
+.monthly-stats-section { padding-bottom: 0 !important; }
+.monthly-stats-section .row.mb-4:last-child { margin-bottom: 0 !important; }
+.monthly-stats-card .chart-wrapper { height: 60px !important; }
+.monthly-stats-card canvas { height: 60px !important; }
+.monthly-stats-section canvas { max-height: 260px; }
+.monthly-stats-section .card { margin-bottom: 1rem; }
+
+/* ApexCharts sizing for this page */
+#apex-monthlyStatus, #apex-priority { min-height: 280px; }
+#apex-employeeStatus, #apex-monthlyTrend { min-height: 340px; }
+
+/* Improve legend spacing and readability */
+.apexcharts-legend { padding-top: 8px !important; }
+.apexcharts-legend .apexcharts-legend-text { font-size: 12px !important; }
+

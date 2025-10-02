@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "admin_dashboard": "لوحة تحكم المشرف",
+    "manager_dashboard": "لوحة تحكم المدير",
+    "employee_dashboard": "لوحة تحكم الموظف",
+    "notifications": "الإشعارات",
+    "view_all_notifications": "عرض كل الإشعارات",
+    "dashboard": "لوحة التحكم",
+    "views": "العروض",
+    "view_notifications": "عرض الإشعارات",
+    "view_tasks": "عرض المهام",
+    "my_tasks": "مهامي",
+    "view_users": "عرض المستخدمين",
+    "register": "تسجيل",
+    "tasks": "المهام",
+    "new_task": "مهمة جديدة",
+    "users": "المستخدمون",
+    "create_new_user": "إنشاء مستخدم جديد",
+    "settings": "الإعدادات",
+    "management": "الإدارة",
+    "settings_dashboard": "لوحة الإعدادات",
+    "add_kpis": "إضافة مؤشرات الأداء",
+    "progress_report": "تقرير التقدم",
+    "monthly_stats": "إحصائيات شهرية",
+    "employees_progress": "تقدم الموظفين",
+    "admin_settings": "إعدادات المشرف",
+    "system_management": "إدارة النظام",
+    "manage_quality_types": "إدارة أنواع الجودة",
+    "manage_priority_types": "إدارة أنواع الأولوية",
+    "evaluation_settings": "إعدادات التقييم",
+    "extras": "إضافات",
+    "pages": "صفحات",
+    "languages": "اللغات",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "profile": "الملف الشخصي",
+    "tasks_label": "المهام"
+  },
+  "breadcrumb": {
+    "home": "الصفحة الرئيسية",
+    "dashboard": "لوحة التحكم"
+  },
+  "language": {
+    "english": "ENGLISH",
+    "arabic": "عربي"
+  },
+  "footer": {
+    "copyright": "حقوق النشر"
+  }
+  ,
+  "role": {
+    "info": {
+      "admin": "بصفتك <strong>مشرفًا</strong>، يمكنك إنشاء مهام لأي مستخدم في النظام وإدارة جميع جوانب نظام إدارة المشاريع.",
+      "manager": "بصفتك <strong>مديرًا</strong>، يمكنك إنشاء مهام لمرؤوسيك وإدارة سير عمل فريقك.",
+      "employee": "بصفتك <strong>موظفًا</strong>، يمكنك إنشاء مهام لنفسك لتتبع تقدم عملك."
+    }
+  }
+}
+
+

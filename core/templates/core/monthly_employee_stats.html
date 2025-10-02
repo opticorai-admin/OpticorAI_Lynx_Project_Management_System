@@ -1,37 +1,92 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
+{% block title %}<span data-i18n="Monthly Employee Statistics">Monthly Employee Statistics</span> - Lynex{% endblock %}
+
+<style>
+/* Ensure proper Arabic font support */
+[data-i18n="Monthly Employee Statistics"],
+.page-title,
+.rtl-ui [data-i18n],
+.rtl-ui h1, .rtl-ui h2, .rtl-ui h3,
+.rtl-ui .breadcrumb-item,
+.rtl-ui th, .rtl-ui td {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica', 'Noto Sans Arabic', 'Arabic UI Text', 'Microsoft Sans Serif', sans-serif !important;
+  font-weight: bold;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+/* Additional Arabic font fallbacks */
+html[lang="ar"] body,
+html[lang="ar"] [data-i18n],
+html[lang="ar"] .breadcrumb-item,
+html[lang="ar"] th,
+html[lang="ar"] td {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica', 'Noto Sans Arabic', 'Arabic UI Text', 'Microsoft Sans Serif', sans-serif !important;
+}
+
+/* Force text direction for Arabic */
+html[lang="ar"] [data-i18n="Monthly Employee Statistics"] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Ensure chart titles and labels use Arabic fonts */
+.rtl-ui .apexcharts-title-text,
+.rtl-ui .apexcharts-xaxis-label,
+.rtl-ui .apexcharts-yaxis-label,
+.rtl-ui .apexcharts-legend-text {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica', 'Noto Sans Arabic', 'Arabic UI Text', 'Microsoft Sans Serif', sans-serif !important;
+  direction: rtl !important;
+}
+
+/* Additional Arabic font support for dynamic content */
+html[lang="ar"] .apexcharts-title-text,
+html[lang="ar"] .apexcharts-xaxis-label,
+html[lang="ar"] .apexcharts-yaxis-label,
+html[lang="ar"] .apexcharts-legend-text,
+html[lang="ar"] .apexcharts-tooltip {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica', 'Noto Sans Arabic', 'Arabic UI Text', 'Microsoft Sans Serif', sans-serif !important;
+}
+</style>
+
 {% block breadcrumb %}
-  <li class="breadcrumb-item">Settings</li>
-  <li class="breadcrumb-item active">Monthly Employee Statistics</li>
+  <li class="breadcrumb-item" data-i18n="nav.settings">Settings</li>
+  <li class="breadcrumb-item active" data-i18n="Monthly Employee Statistics">Monthly Employee Statistics</li>
 {% endblock breadcrumb %}
 
 {% block content %}
 <div class="container monthly-stats-section">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="page-title" data-i18n="Monthly Employee Statistics">Monthly Employee Statistics</h2>
+    </div>
+  </div>
   <div class="card mb-3">
     <div class="card-body">
       <form class="row g-2" method="get">
         <div class="col-md-4">
-          <label class="form-label">Employee (name/email/username)</label>
+          <label class="form-label" data-i18n="Select Employee">Employee (name/email/username)</label>
           <input type="text" class="form-control" name="employee" value="{{ filter_employee_query|default:'' }}" placeholder="Search employee" />
         </div>
         <div class="col-md-3">
-          <label class="form-label">Month</label>
+          <label class="form-label" data-i18n="Month">Month</label>
           <input type="month" class="form-control" name="month" value="{{ filter_month|default:'' }}" />
         </div>
         <div class="col-md-3">
-          <label class="form-label">Or Up To Date</label>
+          <label class="form-label" data-i18n="Or Up To Date">Or Up To Date</label>
           <select class="form-select form-control" name="upto" data-i18n-skip>
-            <option value="">Current month only</option>
-            <option value="ytd" {% if filter_upto == 'ytd' %}selected{% endif %}>Since start of year</option>
+            <option value="" data-i18n="Current month only">Current month only</option>
+            <option value="ytd" {% if filter_upto == 'ytd' %}selected{% endif %} data-i18n="Since start of year">Since start of year</option>
           </select>
         </div>
         <div class="col-md-2 d-flex align-items-end">
-          <button type="submit" class="btn btn-primary w-100"><i class="fa fa-search"></i> Filter</button>
+          <button type="submit" class="btn btn-primary w-100"><i class="fa fa-search"></i> <span data-i18n="Filter">Filter</span></button>
         </div>
       </form>
       <div class="text-muted mt-2">
-        Period: {{ start_date }} — {{ end_date }}
+        <span data-i18n="Period">Period</span>: {{ start_date }} — {{ end_date }}
       </div>
     </div>
   </div>
@@ -39,26 +94,26 @@
   <div class="card">
     <div class="card-body table-responsive">
       <div class="mb-3 d-flex flex-wrap gap-2">
-        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=excel&lang=" class="btn btn-success btn-sm mr-2" data-export-link><i class="fa fa-file-excel-o"></i> Download Excel</a>
-        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=pdf&lang=" class="btn btn-danger btn-sm" data-export-link><i class="fa fa-file-pdf-o"></i> Download PDF</a>
+        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=excel&lang=" class="btn btn-success btn-sm mr-2" data-export-link><i class="fa fa-file-excel-o"></i> <span data-i18n="Download Excel">Download Excel</span></a>
+        <a href="?employee={{ filter_employee_query }}&month={{ filter_month }}&upto={{ filter_upto }}&export=pdf&lang=" class="btn btn-danger btn-sm" data-export-link><i class="fa fa-file-pdf-o"></i> <span data-i18n="Download PDF">Download PDF</span></a>
       </div>
 
      
       <table class="table table-striped table-hover align-middle">
         <thead>
           <tr>
-            <th>Employee</th>
-            <th>Total Assigned</th>
-            <th>Completed</th>
-            <th>Open</th>
-            <th>Closed</th>
-            <th>Due</th>
-            <th>Completion Rate</th>
-            <th>Avg Final Score</th>
-            <th>High</th>
-            <th>Medium</th>
-            <th>Low</th>
-            <th>Timeliness (avg days vs target)</th>
+            <th data-i18n="Employee">Employee</th>
+            <th data-i18n="Total Assigned">Total Assigned</th>
+            <th data-i18n="Completed">Completed</th>
+            <th data-i18n="Open">Open</th>
+            <th data-i18n="Closed">Closed</th>
+            <th data-i18n="Due">Due</th>
+            <th data-i18n="Completion Rate">Completion Rate</th>
+            <th data-i18n="Avg Final Score">Avg Final Score</th>
+            <th data-i18n="High">High</th>
+            <th data-i18n="Medium">Medium</th>
+            <th data-i18n="Low">Low</th>
+            <th data-i18n="Timeliness (avg days vs target)">Timeliness (avg days vs target)</th>
           </tr>
         </thead>
         <tbody>
@@ -87,7 +142,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="11" class="text-center text-muted">No employees/tasks found for the selected period.</td>
+            <td colspan="11" class="text-center text-muted" data-i18n="No employees/tasks found for the selected period.">No employees/tasks found for the selected period.</td>
           </tr>
         {% endfor %}
         </tbody>
@@ -96,7 +151,7 @@
         <div class="card text-white bg-warning monthly-stats-card">
           <div class="card-body pb-0">
             <h4 class="mb-0">{{ open_tasks|default:0 }}</h4>
-            <p>Total Tasks</p>
+            <p data-i18n="Total Tasks">Total Tasks</p>
           </div>
           <div class="chart-wrapper" style="height:70px;">
             <canvas id="card-chart3" class="chart chartjs-render-monitor" height="70" width="280" style="display: block; width: 280px; height: 70px;"></canvas>
@@ -108,7 +163,7 @@
         <div class="card text-white bg-danger monthly-stats-card">
           <div class="card-body pb-0">
             <h4 class="mb-0">{{ due_tasks|default:0 }}</h4>
-            <p> Total Closed Tasks</p>
+            <p data-i18n="Total Closed"> Total Closed Tasks</p>
           </div>
           <div class="chart-wrapper px-3" style="height:70px;">
             <canvas id="card-chart4" class="chart chartjs-render-monitor" height="70" width="248" style="display: block; width: 248px; height: 70px;"></canvas>
@@ -164,6 +219,93 @@ document.addEventListener('DOMContentLoaded', function(){
         a.href = a.href + sep + 'lang=' + encodeURIComponent(lang);
       }
     });
+    
+    // Ensure translations are applied after page load
+    setTimeout(function() {
+      // Force re-apply translations if needed
+      if (typeof window.applyTranslations === 'function') {
+        window.applyTranslations({});
+      }
+      
+      // Multiple attempts to fix translations
+      function fixTranslations() {
+        // Check if Monthly Employee Statistics is still showing as English
+        var titleElements = document.querySelectorAll('[data-i18n="Monthly Employee Statistics"]');
+        titleElements.forEach(function(el) {
+          if (el.textContent === 'Monthly Employee Statistics' && lang === 'ar') {
+            el.textContent = 'إحصائيات الموظفين شهريا';
+          }
+        });
+        
+        // Fix all table headers with comprehensive mapping
+        var headerMappings = {
+          'Employee': 'الموظف',
+          'Open': 'مفتوح',
+          'Closed': 'مغلق',
+          'Due': 'مستحق',
+          'High': 'عالي',
+          'Medium': 'متوسط',
+          'Low': 'منخفض',
+          'Total Assigned': 'إجمالي المسؤول',
+          'Completed': 'منجز',
+          'Completion Rate': 'معدل الانتهاء',
+          'Avg Final Score': 'النتيجة المتوسطة النهائية',
+          'Timeliness (avg days vs target)': 'الموازنة (المتوسط للأيام مقابل الهدف)',
+          // Additional fallbacks for common variations
+          'Total Tasks': 'إجمالي المهام',
+          'Total Closed': 'إجمالي المغلق',
+          'Period': 'فترة'
+        };
+        
+        // Fix malformed Arabic text patterns
+        var malformedMappings = {
+          'سؤول الي الم إجم': 'إجمالي المسؤول',
+          'فتوح م': 'مفتوح',
+          'تحق مس': 'مستحق',
+          'وسط من': 'متوسط',
+          'فض منخ': 'منخفض',
+          'غلق م': 'مغلق',
+          'الي ع': 'عالي'
+        };
+        
+        if (lang === 'ar') {
+          // Fix malformed Arabic text first
+          Object.keys(malformedMappings).forEach(function(malformedText) {
+            var correctText = malformedMappings[malformedText];
+            var elements = document.querySelectorAll('th, td, span, div, h1, h2, h3, h4, h5, h6');
+            elements.forEach(function(el) {
+              if (el.textContent && el.textContent.trim() === malformedText) {
+                el.textContent = correctText;
+              }
+            });
+          });
+          
+          // Fix English text to Arabic
+          Object.keys(headerMappings).forEach(function(englishText) {
+            var arabicText = headerMappings[englishText];
+            var elements = document.querySelectorAll('th, td, span, div, h1, h2, h3, h4, h5, h6');
+            elements.forEach(function(el) {
+              if (el.textContent && el.textContent.trim() === englishText) {
+                el.textContent = arabicText;
+              }
+            });
+          });
+        }
+        
+        // Update page title
+        var pageTitle = document.querySelector('title');
+        if (pageTitle) {
+          var titleText = lang === 'ar' ? 'إحصائيات الموظفين شهريا' : 'Monthly Employee Statistics';
+          pageTitle.textContent = titleText + ' - Lynex';
+        }
+      }
+      
+      // Try multiple times with different delays
+      fixTranslations();
+      setTimeout(fixTranslations, 200);
+      setTimeout(fixTranslations, 500);
+      setTimeout(fixTranslations, 1000);
+    }, 100);
   } catch(e) {}
 });
 </script>
