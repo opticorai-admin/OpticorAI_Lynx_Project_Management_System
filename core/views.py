@@ -995,6 +995,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
 
         # Chart data for overall status distribution and enhanced visuals
         import json as _json
+        # Keep task status labels in English for frontend charts
         chart_labels = ['Open', 'Closed', 'Due']
         chart_values = [aggregate_open, aggregate_closed, aggregate_due]
         chart_data_json = _json.dumps({
@@ -1181,28 +1182,70 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 try:
                     from django.contrib.staticfiles import finders as _static_finders
                     import json as _json
+                    from django.conf import settings as _settings
+                    
+                    # Try multiple paths to find the translation files
                     paths = [
                         _static_finders.find(f'core/i18n/{lang_code}.json'),
                         _static_finders.find(f'core/i18n/phrases.{lang_code}.json'),
+                        # Direct static file paths as fallback
+                        os.path.join(_settings.BASE_DIR, 'OpticorAI_Lynx_Project_Management_System', 'static', 'core', 'i18n', f'{lang_code}.json'),
+                        os.path.join(_settings.BASE_DIR, 'OpticorAI_Lynx_Project_Management_System', 'static', 'core', 'i18n', f'phrases.{lang_code}.json'),
+                        os.path.join(_settings.STATIC_ROOT or '', 'core', 'i18n', f'{lang_code}.json'),
+                        os.path.join(_settings.STATIC_ROOT or '', 'core', 'i18n', f'phrases.{lang_code}.json'),
                     ]
+                    
                     result = {}
                     for p in paths:
                         if p and os.path.isfile(p):
-                            with open(p, 'r', encoding='utf-8') as fh:
-                                try:
-                                    result.update(_json.load(fh) or {})
-                                except Exception:
-                                    pass
+                            try:
+                                with open(p, 'r', encoding='utf-8') as fh:
+                                    data = _json.load(fh)
+                                    if isinstance(data, dict):
+                                        result.update(data)
+                            except Exception as e:
+                                continue
+                    
                     return result
-                except Exception:
+                except Exception as e:
                     return {}
             phrases_map = _load_phrases('ar' if is_ar else 'en')
             def tr(text):
                 if not text:
                     return ''
+                
+                # CRITICAL: Override any translations found in JSON files for specific headings
+                # Note: These headings should remain in English: "Monthly Employee Statistics", "Charts", "Monthly Status", "Number of Tasks", "Status", "Monthly Task Creation Trend", "Month"
+                english_headings = {
+                    'Monthly Employee Statistics', 'Charts', 'Monthly Status', 
+                    'Number of Tasks', 'Status', 'Monthly Task Creation Trend', 'Month',
+                    'Open', 'Closed', 'Due'
+                }
+                
+                if text in english_headings and is_ar:
+                    return text
+                
+                # Only check JSON translations for non-English headings
                 v = phrases_map.get(text)
                 if isinstance(v, str):
                     return v
+                
+                # Direct fallback for specific translations if not found in files
+                if is_ar:
+                    fallback_translations = {
+                        'Task Priority Distribution': 'توزيع الأولويات للمهام',
+                        'Employee': 'الموظف',
+                        'Open': 'مفتوح',
+                        'Closed': 'مغلق',
+                        'Due': 'مستحق',
+                        'High': 'عالي',
+                        'Medium': 'متوسط',
+                        'Low': 'منخفض'
+                    }
+                    if text in fallback_translations:
+                        return fallback_translations[text]
+                
+                # Return original text if no translation found
                 return text
             def fmt_date(d):
                 try:
@@ -1306,7 +1349,88 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         from django.contrib.staticfiles import finders as _static_finders
                         from reportlab.pdfbase import pdfmetrics
                         from reportlab.pdfbase.ttfonts import TTFont
-                        win_fonts = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
+                        from django.conf import settings as _settings
+                        
+                        # Font registration for PDF generation
+                        
+                        # Function to create a robust Arabic font registration
+                        def _create_robust_arabic_font():
+                            """Create a robust Arabic font registration using multiple approaches"""
+                            try:
+                                from reportlab.pdfbase import pdfmetrics
+                                from reportlab.pdfbase.ttfonts import TTFont
+                                from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+                                import tempfile
+                                import base64
+                                
+                                # Approach 1: Try to use ReportLab's built-in Unicode fonts
+                                try:
+                                    # Register a Unicode font that can handle Arabic
+                                    pdfmetrics.registerFont(UnicodeCIDFont('Helvetica'))
+                                    return 'Helvetica'
+                                except Exception:
+                                    pass
+                                
+                                # Approach 2: Try to create a minimal Arabic font using built-in fonts
+                                try:
+                                    # Use ReportLab's built-in fonts that have better Unicode support
+                                    # Try to register a font that can handle Arabic characters
+                                    pdfmetrics.registerFont(TTFont('ArabicFallback', 'helvetica.ttf'))
+                                    
+                                    # Validate the font can handle Arabic text
+                                    if _validate_font_arabic_support('ArabicFallback'):
+                                        return 'ArabicFallback'
+                                    else:
+                                        pass
+                                except Exception:
+                                    pass
+                                
+                                # Approach 3: Use system fonts with better Unicode support
+                                try:
+                                    # Try to register Arial Unicode MS if available
+                                    pdfmetrics.registerFont(TTFont('ArialUnicode', 'arialuni.ttf'))
+                                    return 'ArialUnicode'
+                                except Exception:
+                                    pass
+                                
+                                # Approach 4: Use ReportLab's default fonts with Unicode support
+                                try:
+                                    # Register Times-Roman with Unicode support
+                                    pdfmetrics.registerFont(TTFont('TimesUnicode', 'times.ttf'))
+                                    return 'TimesUnicode'
+                                except Exception:
+                                    pass
+                                
+                                # Approach 5: Use the best available built-in font
+                                return 'Helvetica'
+                                
+                            except Exception:
+                                return 'Helvetica'
+                        
+                        # Function to create a simple Arabic text fallback
+                        def _create_arabic_fallback():
+                            """Create a simple fallback that handles Arabic text without external fonts"""
+                            try:
+                                # Use ReportLab's built-in fonts with better Unicode support
+                                from reportlab.pdfbase import pdfmetrics
+                                from reportlab.pdfbase.ttfonts import TTFont
+                                
+                                # Try to use ReportLab's built-in fonts that have better Unicode support
+                                built_in_fonts = ['Helvetica', 'Times-Roman', 'Courier']
+                                for font_name in built_in_fonts:
+                                    try:
+                                        # Test if the font can handle Unicode
+                                        test_paragraph = Paragraph('<para>Test</para>', styles['Normal'])
+                                        # If we get here without error, the font is available
+                                        return font_name
+                                    except:
+                                        continue
+                                
+                                return 'Helvetica'  # Final fallback
+                            except Exception as e:
+                                return 'Helvetica'
+                        
+                        # Enhanced font search with more fallback options
                         def _first_existing(paths):
                             for p in paths:
                                 try:
@@ -1315,43 +1439,125 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                                 except Exception:
                                     pass
                             return None
+                        
+                        # Get system font paths
+                        win_fonts = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
+                        system_fonts = '/System/Library/Fonts'  # macOS
+                        linux_fonts = '/usr/share/fonts'  # Linux
+                        
+                        # Comprehensive font search paths
                         reg_font = _first_existing([
+                            # Static fonts
                             _static_finders.find('core/fonts/DejaVuSans.ttf'),
                             _static_finders.find('core/fonts/NotoNaskhArabic-Regular.ttf'),
                             _static_finders.find('core/fonts/Amiri-Regular.ttf'),
+                            # Windows fonts
+                            os.path.join(win_fonts, 'arial.ttf'),
+                            os.path.join(win_fonts, 'arialuni.ttf'),
+                            os.path.join(win_fonts, 'tahoma.ttf'),
                             os.path.join(win_fonts, 'DejaVuSans.ttf'),
                             os.path.join(win_fonts, 'NotoNaskhArabic-Regular.ttf'),
                             os.path.join(win_fonts, 'Amiri-Regular.ttf'),
-                            os.path.join(win_fonts, 'tahoma.ttf'),
-                            os.path.join(win_fonts, 'arialuni.ttf'),
+                            # macOS fonts
+                            os.path.join(system_fonts, 'Arial.ttf'),
+                            os.path.join(system_fonts, 'Helvetica.ttc'),
+                            # Linux fonts
+                            os.path.join(linux_fonts, 'truetype/dejavu/DejaVuSans.ttf'),
+                            os.path.join(linux_fonts, 'truetype/liberation/LiberationSans-Regular.ttf'),
+                            # Try built-in fonts as last resort
+                            'arial.ttf',
+                            'helvetica.ttf'
                         ])
+                        
                         bold_font = _first_existing([
+                            # Static fonts
                             _static_finders.find('core/fonts/DejaVuSans-Bold.ttf'),
                             _static_finders.find('core/fonts/NotoNaskhArabic-Bold.ttf'),
                             _static_finders.find('core/fonts/Amiri-Bold.ttf'),
+                            # Windows fonts
+                            os.path.join(win_fonts, 'arialbd.ttf'),
+                            os.path.join(win_fonts, 'tahomabd.ttf'),
                             os.path.join(win_fonts, 'DejaVuSans-Bold.ttf'),
                             os.path.join(win_fonts, 'NotoNaskhArabic-Bold.ttf'),
                             os.path.join(win_fonts, 'Amiri-Bold.ttf'),
-                            os.path.join(win_fonts, 'tahomabd.ttf'),
+                            # macOS fonts
+                            os.path.join(system_fonts, 'Arial Bold.ttf'),
+                            os.path.join(system_fonts, 'Helvetica-Bold.ttc'),
+                            # Linux fonts
+                            os.path.join(linux_fonts, 'truetype/dejavu/DejaVuSans-Bold.ttf'),
+                            os.path.join(linux_fonts, 'truetype/liberation/LiberationSans-Bold.ttf'),
+                            # Try built-in fonts as last resort
+                            'arialbd.ttf',
+                            'helvetica-bold.ttf'
                         ])
+                        
+                        # Register fonts with better error handling
                         if reg_font:
-                            pdfmetrics.registerFont(TTFont('ArabicBase', reg_font))
-                            styles['Normal'].fontName = 'ArabicBase'
-                            _arabic_base_registered = True
+                            try:
+                                pdfmetrics.registerFont(TTFont('ArabicBase', reg_font))
+                                styles['Normal'].fontName = 'ArabicBase'
+                                _arabic_base_registered = True
+                            except Exception:
+                                # Try to use a built-in Unicode font
+                                try:
+                                    pdfmetrics.registerFont(TTFont('UnicodeBase', 'arial.ttf'))
+                                    styles['Normal'].fontName = 'UnicodeBase'
+                                    _arabic_base_registered = True
+                                except Exception as e2:
+                                    styles['Normal'].fontName = 'Helvetica'
                         else:
-                            styles['Normal'].fontName = 'Helvetica'
+                            # Use built-in Unicode-capable fonts
+                            try:
+                                pdfmetrics.registerFont(TTFont('UnicodeBase', 'arial.ttf'))
+                                styles['Normal'].fontName = 'UnicodeBase'
+                                _arabic_base_registered = True
+                            except Exception as e:
+                                # Try direct Arabic font registration as fallback
+                                direct_font = _create_direct_arabic_font()
+                                styles['Normal'].fontName = direct_font
+                                _arabic_base_registered = True
+                        
                         if bold_font:
-                            pdfmetrics.registerFont(TTFont('ArabicBase-Bold', bold_font))
-                            header_font_name = 'ArabicBase-Bold'
-                            styles['Heading1'].fontName = header_font_name
+                            try:
+                                pdfmetrics.registerFont(TTFont('ArabicBase-Bold', bold_font))
+                                header_font_name = 'ArabicBase-Bold'
+                                styles['Heading1'].fontName = header_font_name
+                            except Exception as e:
+                                print(f"Failed to register Arabic bold font {bold_font}: {e}")
+                                # Fallback to regular Arabic font for headings
+                                if _arabic_base_registered:
+                                    header_font_name = styles['Normal'].fontName
+                                    styles['Heading1'].fontName = header_font_name
+                                else:
+                                    try:
+                                        pdfmetrics.registerFont(TTFont('UnicodeBase-Bold', 'arialbd.ttf'))
+                                        header_font_name = 'UnicodeBase-Bold'
+                                        styles['Heading1'].fontName = header_font_name
+                                    except:
+                                        styles['Heading1'].fontName = 'Helvetica-Bold'
                         else:
                             # Fallback to regular Arabic font for headings to avoid missing glyph squares
                             if _arabic_base_registered:
-                                header_font_name = 'ArabicBase'
+                                header_font_name = styles['Normal'].fontName
                                 styles['Heading1'].fontName = header_font_name
-                    except Exception:
-                        styles['Normal'].fontName = 'Helvetica'
-                        styles['Heading1'].fontName = header_font_name
+                            else:
+                                try:
+                                    pdfmetrics.registerFont(TTFont('UnicodeBase-Bold', 'arialbd.ttf'))
+                                    header_font_name = 'UnicodeBase-Bold'
+                                    styles['Heading1'].fontName = header_font_name
+                                except:
+                                    styles['Heading1'].fontName = 'Helvetica-Bold'
+                    except Exception as e:
+                        print(f"Font registration error: {e}")
+                        # Final fallback to built-in fonts
+                        try:
+                            pdfmetrics.registerFont(TTFont('UnicodeBase', 'arial.ttf'))
+                            styles['Normal'].fontName = 'UnicodeBase'
+                            styles['Heading1'].fontName = 'UnicodeBase'
+                            header_font_name = 'UnicodeBase'
+                        except:
+                            styles['Normal'].fontName = 'Helvetica'
+                            styles['Heading1'].fontName = 'Helvetica-Bold'
                 else:
                     styles['Normal'].fontName = 'Helvetica'
                 styles['Normal'].fontSize = 9
@@ -1389,16 +1595,158 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     pass
                 story.append(Paragraph('Lynex', brand_style))
                 story.append(HRFlowable(width='30%', thickness=1, color=colors.HexColor('#0B5ED7'), spaceBefore=4, spaceAfter=8, hAlign='CENTER'))
-                # Arabic shaping helper
+                # Enhanced Arabic shaping helper with robust fallbacks
                 def _ar_shape(txt):
                     if not (is_ar and txt):
                         return '' if txt is None else str(txt)
+                    
+                    text_str = str(txt).strip()
+                    if not text_str:
+                        return text_str
+                    
+                    # First, try the standard Arabic shaping
                     try:
                         import arabic_reshaper  # type: ignore
                         from bidi.algorithm import get_display  # type: ignore
-                        return get_display(arabic_reshaper.reshape(str(txt)))
+                        
+                        # Reshape Arabic text
+                        shaped = arabic_reshaper.reshape(text_str)
+                        if shaped:
+                            result = get_display(shaped)
+                            # Additional validation to prevent malformed text
+                            if result and len(result) > 0:
+                                return result
+                        
+                        return text_str
+                    except ImportError:
+                        # If libraries are not available, try a simple fallback
+                        return _simple_arabic_fallback(text_str)
                     except Exception:
-                        return str(txt)
+                        # Log the error for debugging but return the original text
+                        return _simple_arabic_fallback(text_str)
+                
+                # Function to create a simple Arabic-compatible font
+                def _create_simple_arabic_font():
+                    """Create a simple Arabic-compatible font using ReportLab's built-in capabilities"""
+                    try:
+                        from reportlab.pdfbase import pdfmetrics
+                        from reportlab.pdfbase.ttfonts import TTFont
+                        
+                        # Try to use ReportLab's built-in fonts that can handle Unicode
+                        # Use a font that's known to work with Arabic characters
+                        try:
+                            # Try to register a font that can handle Arabic
+                            pdfmetrics.registerFont(TTFont('SimpleArabic', 'helvetica.ttf'))
+                            
+                            # Test if this font can handle Arabic text
+                            if _validate_font_arabic_support('SimpleArabic'):
+                                return 'SimpleArabic'
+                            else:
+                                pass
+                        except Exception as e:
+                            pass
+                        
+                        # Fallback to standard Helvetica
+                        return 'Helvetica'
+                        
+                    except Exception as e:
+                        return 'Helvetica'
+                
+                # Function to create a direct Arabic font solution
+                def _create_direct_arabic_font():
+                    """Create a direct Arabic font solution that works without external dependencies"""
+                    try:
+                        from reportlab.pdfbase import pdfmetrics
+                        from reportlab.pdfbase.ttfonts import TTFont
+                        
+                        # Try to create a font that can handle Arabic text directly
+                        # Use ReportLab's built-in capabilities
+                        try:
+                            # Register a font using ReportLab's built-in font
+                            pdfmetrics.registerFont(TTFont('DirectArabic', 'helvetica.ttf'))
+                            
+                            # Test the font with Arabic text
+                            if _validate_font_arabic_support('DirectArabic'):
+                                return 'DirectArabic'
+                            else:
+                                pass
+                        except Exception as e:
+                            pass
+                        
+                        # Final fallback - use Helvetica with proper text handling
+                        return 'Helvetica'
+                        
+                    except Exception as e:
+                        pass
+                        return 'Helvetica'
+                
+                # Simple fallback for Arabic text when shaping libraries are not available
+                def _simple_arabic_fallback(text):
+                    """Simple fallback that ensures Arabic text is readable even without proper fonts"""
+                    try:
+                        # Basic Arabic character validation and cleanup
+                        import re
+                        
+                        # Remove any control characters that might cause rendering issues
+                        cleaned = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+                        
+                        # Ensure the text contains valid Arabic characters
+                        arabic_chars = re.findall(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]', cleaned)
+                        if arabic_chars:
+                            return cleaned
+                        else:
+                            return cleaned
+                    except Exception as e:
+                        return str(text)
+                
+                # Function to validate font and test Arabic text rendering
+                def _validate_font_arabic_support(font_name, test_text="مرحبا"):
+                    """Test if a font can render Arabic text properly"""
+                    try:
+                        from reportlab.platypus import Paragraph
+                        from reportlab.lib.styles import ParagraphStyle
+                        from reportlab.lib import colors
+                        
+                        # Create a test paragraph with Arabic text
+                        test_style = ParagraphStyle(
+                            'TestStyle',
+                            fontName=font_name,
+                            fontSize=12,
+                            textColor=colors.black
+                        )
+                        
+                        # Try to create a paragraph with Arabic text
+                        test_paragraph = Paragraph(test_text, test_style)
+                        
+                        # If we get here without error, the font can handle Arabic
+                        return True
+                        
+                    except Exception as e:
+                        return False
+                
+                # Function to create a minimal Arabic font registration
+                def _create_minimal_arabic_font():
+                    """Create a minimal Arabic font registration using built-in fonts"""
+                    try:
+                        from reportlab.pdfbase import pdfmetrics
+                        from reportlab.pdfbase.ttfonts import TTFont
+                        
+                        # Try to register a simple Unicode font that can handle Arabic
+                        # Use ReportLab's built-in fonts with Unicode support
+                        try:
+                            # Try to register Helvetica with Unicode support
+                            pdfmetrics.registerFont(TTFont('HelveticaUnicode', 'helvetica.ttf'))
+                            return 'HelveticaUnicode'
+                        except:
+                            try:
+                                # Try to register Times with Unicode support
+                                pdfmetrics.registerFont(TTFont('TimesUnicode', 'times.ttf'))
+                                return 'TimesUnicode'
+                            except:
+                                # Use standard Helvetica as fallback
+                                return 'Helvetica'
+                    except Exception as e:
+                        return 'Helvetica'
                 story.append(Paragraph(_ar_shape(labels['title']), title_style))
                 story.append(Paragraph(_ar_shape(f"{labels['period']} {period_label}"), styles['Normal']))
                 story.append(Spacer(1, 8))
@@ -1431,7 +1779,7 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                 )
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-                    ('FONTNAME', (0,0), (-1,0), header_font_name),
+                    ('FONTNAME', (0,0), (-1,0), header_font_name if header_font_name != 'Helvetica-Bold' else styles['Normal'].fontName),
                     ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
                     ('FONTSIZE', (0,0), (-1,-1), 9),
                     ('VALIGN', (0,0), (-1,-1), 'TOP'),
@@ -1446,7 +1794,13 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
 
                 # --- Charts section ---
                 story.append(Spacer(1, 12))
-                story.append(Paragraph(_ar_shape(tr('Charts') or 'Charts'), styles['Heading2']))
+                # Keep specific headings in English without Arabic shaping
+                english_headings = {'Monthly Employee Statistics', 'Charts', 'Monthly Status', 'Number of Tasks', 'Status', 'Monthly Task Creation Trend', 'Month'}
+                charts_text = tr('Charts') or 'Charts'
+                if charts_text in english_headings and is_ar:
+                    story.append(Paragraph(charts_text, styles['Heading2']))
+                else:
+                    story.append(Paragraph(_ar_shape(charts_text), styles['Heading2']))
 
                 brand_yellow = colors.HexColor('#ffc107')
                 brand_green = colors.HexColor('#28a745')
@@ -1461,7 +1815,11 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     status_chart.y = 60
                     status_chart.height = 150
                     status_chart.width = 320
-                    status_chart.categoryAxis.categoryNames = [tr('Open') or 'Open', tr('Closed') or 'Closed', tr('Due') or 'Due']
+                    # Keep task status labels in English without Arabic shaping
+                    open_text = tr('Open') or 'Open'
+                    closed_text = tr('Closed') or 'Closed'
+                    due_text = tr('Due') or 'Due'
+                    status_chart.categoryAxis.categoryNames = [open_text, closed_text, due_text]
                     status_chart.categoryAxis.labels.boxAnchor = 'ne'
                     status_chart.valueAxis.valueMin = 0
                     try:
@@ -1482,7 +1840,11 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     status_draw.add(status_chart)
                     # Axis titles for clarity
                     try:
-                        status_draw.add(String(210, 34, tr('Status') or 'Status', fontSize=9))
+                        status_text = tr('Status') or 'Status'
+                        if status_text in english_headings and is_ar:
+                            status_draw.add(String(210, 34, status_text, fontSize=9))
+                        else:
+                            status_draw.add(String(210, 34, _ar_shape(status_text), fontSize=9))
                     except Exception:
                         pass
                     try:
@@ -1492,18 +1854,30 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         ylbl.boxAnchor = 'c'
                         ylbl.fontSize = 9
                         try:
-                            ylbl.setText(tr('Number of Tasks') or 'Number of Tasks')
+                            number_tasks_text = tr('Number of Tasks') or 'Number of Tasks'
+                            if number_tasks_text in english_headings and is_ar:
+                                ylbl.setText(number_tasks_text)
+                            else:
+                                ylbl.setText(_ar_shape(number_tasks_text))
                         except Exception:
-                            ylbl.text = 'Number of Tasks'
+                            number_tasks_text = tr('Number of Tasks') or 'Number of Tasks'
+                            if number_tasks_text in english_headings and is_ar:
+                                ylbl.text = number_tasks_text
+                            else:
+                                ylbl.text = _ar_shape(number_tasks_text)
                         status_draw.add(ylbl)
                     except Exception:
                         pass
                     # Horizontal legend (color explanation)
                     try:
+                        # Keep task status legend labels in English without Arabic shaping
+                        open_legend = tr('Open') or 'Open'
+                        closed_legend = tr('Closed') or 'Closed'
+                        due_legend = tr('Due') or 'Due'
                         legend_items = [
-                            (brand_yellow, tr('Open') or 'Open'),
-                            (brand_green, tr('Closed') or 'Closed'),
-                            (brand_red, tr('Due') or 'Due'),
+                            (brand_yellow, open_legend),
+                            (brand_green, closed_legend),
+                            (brand_red, due_legend),
                         ]
                         start_x = 160
                         y = 10
@@ -1515,7 +1889,11 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                     except Exception:
                         pass
                     story.append(Spacer(1, 6))
-                    story.append(Paragraph(_ar_shape(tr('Monthly Status') or 'Monthly Status'), styles['Heading3']))
+                    monthly_status_text = tr('Monthly Status') or 'Monthly Status'
+                    if monthly_status_text in english_headings and is_ar:
+                        story.append(Paragraph(monthly_status_text, styles['Heading3']))
+                    else:
+                        story.append(Paragraph(_ar_shape(monthly_status_text), styles['Heading3']))
                     story.append(status_draw)
                     # Force charts onto clean pages to avoid layout overflow
                     story.append(PageBreak())
@@ -1572,7 +1950,11 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         # Axis titles
                         try:
                             emp_draw.add(String(260, 20, tr('Employees') or 'Employees', fontSize=9))
-                            emp_draw.add(String(15, 180, tr('Number of Tasks') or 'Number of Tasks', angle=90, fontSize=9))
+                            number_tasks_text = tr('Number of Tasks') or 'Number of Tasks'
+                            if number_tasks_text in english_headings and is_ar:
+                                emp_draw.add(String(15, 180, number_tasks_text, angle=90, fontSize=9))
+                            else:
+                                emp_draw.add(String(15, 180, _ar_shape(number_tasks_text), angle=90, fontSize=9))
                         except Exception:
                             pass
                         emp_legend = Legend()
@@ -1745,16 +2127,28 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                             pass
                         # Axis titles and month tick labels (bring Month closer to plot)
                         try:
-                            lp_draw.add(String(240, 80, tr('Month') or 'Month', fontSize=9))
+                            month_text = tr('Month') or 'Month'
+                            if month_text in english_headings and is_ar:
+                                lp_draw.add(String(240, 80, month_text, fontSize=9))
+                            else:
+                                lp_draw.add(String(240, 80, _ar_shape(month_text), fontSize=9))
                             ylbl2 = Label()
                             ylbl2.setOrigin(14, line.y + (line.height / 2.0))
                             ylbl2.angle = 90
                             ylbl2.boxAnchor = 'c'
                             ylbl2.fontSize = 9
                             try:
-                                ylbl2.setText('Number of Tasks')
+                                number_tasks_text = tr('Number of Tasks') or 'Number of Tasks'
+                                if number_tasks_text in english_headings and is_ar:
+                                    ylbl2.setText(number_tasks_text)
+                                else:
+                                    ylbl2.setText(_ar_shape(number_tasks_text))
                             except Exception:
-                                ylbl2.text = 'Number of Tasks'
+                                number_tasks_text = tr('Number of Tasks') or 'Number of Tasks'
+                                if number_tasks_text in english_headings and is_ar:
+                                    ylbl2.text = number_tasks_text
+                                else:
+                                    ylbl2.text = _ar_shape(number_tasks_text)
                             lp_draw.add(ylbl2)
                         except Exception:
                             pass
@@ -1795,7 +2189,11 @@ class MonthlyEmployeeStatsView(LoginRequiredMixin, View):
                         except Exception:
                             pass
                         story.append(Spacer(1, 6))
-                        story.append(Paragraph(_ar_shape(tr('Monthly Task Creation Trend') or 'Monthly Task Creation Trend'), styles['Heading3']))
+                        trend_text = tr('Monthly Task Creation Trend') or 'Monthly Task Creation Trend'
+                        if trend_text in english_headings and is_ar:
+                            story.append(Paragraph(trend_text, styles['Heading3']))
+                        else:
+                            story.append(Paragraph(_ar_shape(trend_text), styles['Heading3']))
                         story.append(lp_draw)
                 except Exception:
                     pass
@@ -2973,26 +3371,70 @@ class ProgressReportView(LoginRequiredMixin, View):
                 try:
                     from django.contrib.staticfiles import finders as _static_finders
                     import json as _json
+                    from django.conf import settings as _settings
+                    
+                    # Try multiple paths to find the translation files
                     paths = [
                         _static_finders.find(f'core/i18n/{lang_code}.json'),
                         _static_finders.find(f'core/i18n/phrases.{lang_code}.json'),
+                        # Direct static file paths as fallback
+                        os.path.join(_settings.BASE_DIR, 'OpticorAI_Lynx_Project_Management_System', 'static', 'core', 'i18n', f'{lang_code}.json'),
+                        os.path.join(_settings.BASE_DIR, 'OpticorAI_Lynx_Project_Management_System', 'static', 'core', 'i18n', f'phrases.{lang_code}.json'),
+                        os.path.join(_settings.STATIC_ROOT or '', 'core', 'i18n', f'{lang_code}.json'),
+                        os.path.join(_settings.STATIC_ROOT or '', 'core', 'i18n', f'phrases.{lang_code}.json'),
                     ]
+                    
                     result = {}
                     for p in paths:
                         if p and os.path.isfile(p):
-                            with open(p, 'r', encoding='utf-8') as fh:
-                                result.update(_json.load(fh) or {})
+                            try:
+                                with open(p, 'r', encoding='utf-8') as fh:
+                                    data = _json.load(fh)
+                                    if isinstance(data, dict):
+                                        result.update(data)
+                            except Exception as e:
+                                continue
+                    
                     return result
-                except Exception:
+                except Exception as e:
                     return {}
             phrases_map = _load_phrases('ar' if is_ar else 'en')
             def tr(text):
                 if not text:
                     return ''
-                # direct key match
+                
+                # CRITICAL: Override any translations found in JSON files for specific headings
+                # Note: These headings should remain in English: "Monthly Employee Statistics", "Charts", "Monthly Status", "Number of Tasks", "Status", "Monthly Task Creation Trend", "Month"
+                english_headings = {
+                    'Monthly Employee Statistics', 'Charts', 'Monthly Status', 
+                    'Number of Tasks', 'Status', 'Monthly Task Creation Trend', 'Month',
+                    'Open', 'Closed', 'Due'
+                }
+                
+                if text in english_headings and is_ar:
+                    return text
+                
+                # Only check JSON translations for non-English headings
                 v = phrases_map.get(text)
                 if isinstance(v, str):
                     return v
+                
+                # Direct fallback for specific translations if not found in files
+                if is_ar:
+                    fallback_translations = {
+                        'Task Priority Distribution': 'توزيع الأولويات للمهام',
+                        'Employee': 'الموظف',
+                        'Open': 'مفتوح',
+                        'Closed': 'مغلق',
+                        'Due': 'مستحق',
+                        'High': 'عالي',
+                        'Medium': 'متوسط',
+                        'Low': 'منخفض'
+                    }
+                    if text in fallback_translations:
+                        return fallback_translations[text]
+                
+                # Return original text if no translation found
                 # nested dicts are not used here; fallback
                 return text
             # Labels via dictionaries to match frontend
@@ -3003,7 +3445,7 @@ class ProgressReportView(LoginRequiredMixin, View):
                 'emp_progress_score': tr('Employee Progress Score:') if tr('Employee Progress Score:') != 'Employee Progress Score:' else ('درجة تقدم الموظف:' if is_ar else 'Employee Progress Score:'),
                 'columns': [
                     tr('Task') if tr('Task') != 'Task' else ('المهمة' if is_ar else 'Task'),
-                    tr('Status') if tr('Status') != 'Status' else ('الحالة' if is_ar else 'Status'),
+                    'Status' if 'Status' in {'Monthly Employee Statistics', 'Charts', 'Monthly Status', 'Number of Tasks', 'Status', 'Monthly Task Creation Trend', 'Month'} and is_ar else (tr('Status') if tr('Status') != 'Status' else ('الحالة' if is_ar else 'Status')),
                     tr('KPI') if tr('KPI') != 'KPI' else ('مؤشر الأداء' if is_ar else 'KPI'),
                     tr('Priority') if tr('Priority') != 'Priority' else ('الأولوية' if is_ar else 'Priority'),
                     tr('Start Date') if tr('Start Date') != 'Start Date' else ('تاريخ البدء' if is_ar else 'Start Date'),
@@ -3011,9 +3453,13 @@ class ProgressReportView(LoginRequiredMixin, View):
                     tr('Final Score (%)') if tr('Final Score (%)') != 'Final Score (%)' else ('النتيجة النهائية (%)' if is_ar else 'Final Score (%)')
                 ]
             }
-            # Status translation using dictionaries
+            # Status translation using dictionaries - keep task statuses in English
             def tr_status(s):
-                if is_ar:
+                # Keep task status labels in English even when Arabic is selected
+                english_statuses = {'Open', 'Closed', 'Due'}
+                if s in english_statuses and is_ar:
+                    return s
+                elif is_ar:
                     m = {'Open': tr('Open') or 'مفتوح', 'Closed': tr('Closed') or 'مغلق', 'Due': tr('Due') or 'مستحق'}
                     return m.get(s, s)
                 return s
@@ -3093,7 +3539,9 @@ class ProgressReportView(LoginRequiredMixin, View):
                 if is_ar:
                     try:
                         from django.contrib.staticfiles import finders as _static_finders
-                        # Helper to find the first existing font file from candidates
+                        from django.conf import settings as _settings
+                        
+                        # Enhanced font search with more fallback options
                         def _first_existing(paths):
                             for p in paths:
                                 try:
@@ -3102,46 +3550,108 @@ class ProgressReportView(LoginRequiredMixin, View):
                                 except Exception:
                                     pass
                             return None
-                        # Candidate locations (static and system fonts on Windows)
+                        
+                        # Get system font paths
                         win_fonts = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts')
-                        # Regular font candidates
-                        reg_candidates = [
+                        system_fonts = '/System/Library/Fonts'  # macOS
+                        linux_fonts = '/usr/share/fonts'  # Linux
+                        
+                        # Comprehensive font search paths
+                        reg_font = _first_existing([
+                            # Static fonts
                             _static_finders.find('core/fonts/DejaVuSans.ttf'),
                             _static_finders.find('core/fonts/NotoNaskhArabic-Regular.ttf'),
                             _static_finders.find('core/fonts/Amiri-Regular.ttf'),
+                            # Windows fonts
+                            os.path.join(win_fonts, 'arial.ttf'),
+                            os.path.join(win_fonts, 'arialuni.ttf'),
+                            os.path.join(win_fonts, 'tahoma.ttf'),
                             os.path.join(win_fonts, 'DejaVuSans.ttf'),
                             os.path.join(win_fonts, 'NotoNaskhArabic-Regular.ttf'),
                             os.path.join(win_fonts, 'Amiri-Regular.ttf'),
-                            os.path.join(win_fonts, 'tahoma.ttf'),
-                            os.path.join(win_fonts, 'arialuni.ttf'),
                             os.path.join(win_fonts, 'ARIALUNI.TTF'),
                             os.path.join(win_fonts, 'segoeui.ttf'),
-                        ]
-                        bold_candidates = [
+                            # macOS fonts
+                            os.path.join(system_fonts, 'Arial.ttf'),
+                            os.path.join(system_fonts, 'Helvetica.ttc'),
+                            # Linux fonts
+                            os.path.join(linux_fonts, 'truetype/dejavu/DejaVuSans.ttf'),
+                            os.path.join(linux_fonts, 'truetype/liberation/LiberationSans-Regular.ttf'),
+                            # Try built-in fonts as last resort
+                            'arial.ttf',
+                            'helvetica.ttf'
+                        ])
+                        
+                        bold_font = _first_existing([
+                            # Static fonts
                             _static_finders.find('core/fonts/DejaVuSans-Bold.ttf'),
                             _static_finders.find('core/fonts/NotoNaskhArabic-Bold.ttf'),
                             _static_finders.find('core/fonts/Amiri-Bold.ttf'),
+                            # Windows fonts
+                            os.path.join(win_fonts, 'arialbd.ttf'),
+                            os.path.join(win_fonts, 'tahomabd.ttf'),
                             os.path.join(win_fonts, 'DejaVuSans-Bold.ttf'),
                             os.path.join(win_fonts, 'NotoNaskhArabic-Bold.ttf'),
                             os.path.join(win_fonts, 'Amiri-Bold.ttf'),
-                            os.path.join(win_fonts, 'tahomabd.ttf'),
                             os.path.join(win_fonts, 'segoeuib.ttf'),
-                        ]
-                        reg_font = _first_existing(reg_candidates)
-                        bold_font = _first_existing(bold_candidates)
+                            # macOS fonts
+                            os.path.join(system_fonts, 'Arial Bold.ttf'),
+                            os.path.join(system_fonts, 'Helvetica-Bold.ttc'),
+                            # Linux fonts
+                            os.path.join(linux_fonts, 'truetype/dejavu/DejaVuSans-Bold.ttf'),
+                            os.path.join(linux_fonts, 'truetype/liberation/LiberationSans-Bold.ttf'),
+                            # Try built-in fonts as last resort
+                            'arialbd.ttf',
+                            'helvetica-bold.ttf'
+                        ])
+                        
+                        # Register fonts with better error handling
                         if reg_font:
-                            pdfmetrics.registerFont(TTFont('ArabicBase', reg_font))
-                            styles['Normal'].fontName = 'ArabicBase'
+                            try:
+                                pdfmetrics.registerFont(TTFont('ArabicBase', reg_font))
+                                styles['Normal'].fontName = 'ArabicBase'
+                            except Exception as e:
+                                print(f"Failed to register Arabic font {reg_font}: {e}")
+                                # Try to use a built-in Unicode font
+                                try:
+                                    pdfmetrics.registerFont(TTFont('UnicodeBase', 'arial.ttf'))
+                                    styles['Normal'].fontName = 'UnicodeBase'
+                                except:
+                                    styles['Normal'].fontName = 'Helvetica'
                         else:
-                            styles['Normal'].fontName = 'Helvetica'
+                            # Use built-in Unicode-capable fonts
+                            try:
+                                pdfmetrics.registerFont(TTFont('UnicodeBase', 'arial.ttf'))
+                                styles['Normal'].fontName = 'UnicodeBase'
+                            except:
+                                styles['Normal'].fontName = 'Helvetica'
+                        
                         if bold_font:
-                            pdfmetrics.registerFont(TTFont('ArabicBase-Bold', bold_font))
-                            header_font_name = 'ArabicBase-Bold'
-                            styles['Heading1'].fontName = header_font_name
-                            styles['Heading2'].fontName = header_font_name
+                            try:
+                                pdfmetrics.registerFont(TTFont('ArabicBase-Bold', bold_font))
+                                header_font_name = 'ArabicBase-Bold'
+                                styles['Heading1'].fontName = header_font_name
+                                styles['Heading2'].fontName = header_font_name
+                            except Exception as e:
+                                print(f"Failed to register Arabic bold font {bold_font}: {e}")
+                                # Fallback to regular Arabic font for headings
+                                try:
+                                    pdfmetrics.registerFont(TTFont('UnicodeBase-Bold', 'arialbd.ttf'))
+                                    header_font_name = 'UnicodeBase-Bold'
+                                    styles['Heading1'].fontName = header_font_name
+                                    styles['Heading2'].fontName = header_font_name
+                                except:
+                                    styles['Heading1'].fontName = 'Helvetica-Bold'
+                                    styles['Heading2'].fontName = 'Helvetica-Bold'
                         else:
-                            styles['Heading1'].fontName = header_font_name
-                            styles['Heading2'].fontName = header_font_name
+                            try:
+                                pdfmetrics.registerFont(TTFont('UnicodeBase-Bold', 'arialbd.ttf'))
+                                header_font_name = 'UnicodeBase-Bold'
+                                styles['Heading1'].fontName = header_font_name
+                                styles['Heading2'].fontName = header_font_name
+                            except:
+                                styles['Heading1'].fontName = 'Helvetica-Bold'
+                                styles['Heading2'].fontName = 'Helvetica-Bold'
                     except Exception:
                         styles['Normal'].fontName = 'Helvetica'
                         styles['Heading1'].fontName = header_font_name

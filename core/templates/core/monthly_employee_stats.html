@@ -229,12 +229,19 @@ document.addEventListener('DOMContentLoaded', function(){
       
       // Multiple attempts to fix translations
       function fixTranslations() {
-        // Check if Monthly Employee Statistics is still showing as English
-        var titleElements = document.querySelectorAll('[data-i18n="Monthly Employee Statistics"]');
-        titleElements.forEach(function(el) {
-          if (el.textContent === 'Monthly Employee Statistics' && lang === 'ar') {
-            el.textContent = 'إحصائيات الموظفين شهريا';
-          }
+        // Keep specific headings in English as requested
+        var englishHeadings = [
+          'Monthly Employee Statistics', 'Charts', 'Monthly Status', 
+          'Number of Tasks', 'Status', 'Monthly Task Creation Trend', 'Month'
+        ];
+        
+        englishHeadings.forEach(function(englishText) {
+          var elements = document.querySelectorAll('[data-i18n*="' + englishText + '"], .apexcharts-title-text');
+          elements.forEach(function(el) {
+            if (el.textContent !== englishText && lang === 'ar') {
+              el.textContent = englishText;
+            }
+          });
         });
         
         // Fix all table headers with comprehensive mapping
@@ -292,11 +299,10 @@ document.addEventListener('DOMContentLoaded', function(){
           });
         }
         
-        // Update page title
+        // Keep page title in English as requested
         var pageTitle = document.querySelector('title');
         if (pageTitle) {
-          var titleText = lang === 'ar' ? 'إحصائيات الموظفين شهريا' : 'Monthly Employee Statistics';
-          pageTitle.textContent = titleText + ' - Lynex';
+          pageTitle.textContent = 'Monthly Employee Statistics - Lynex';
         }
       }
       

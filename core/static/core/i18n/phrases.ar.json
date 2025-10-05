@@ -36,6 +36,7 @@
   "Name": "الاسم",
   "Code": "الشفرة",
   "Multiplier": "المضاعف",
+  "Status": "الحالة",
   "Sort Order": "ترتيب الفرز",
   "Date": "التاريخ",
   "Actions": "الإجراءات",
@@ -299,6 +300,7 @@
   "Search":"بحث",
   "Select Employee":"اختر الموظف",
   "Select":"اختر",
+  "Month":"شهر",
   "Months":"شهر",
   "Day":"يوم",
   "Days":"يوم",
@@ -310,9 +312,11 @@
   "Minutes":"دقائق",
   "Monthly":"شهري",
   "Yearly":"سنوي",
+  "Monthly Employee Statistics":"إحصائيات الموظفين شهريا",
   "Or Up To Date":"أو حتى التاريخ",
   "Current month only":"الشهر الحالي فقط",
   "Since start of year":"من بداية السنة",
+  "Totals":"المجموع",
   "Since":"من",
   "Total Assigned":"إجمالي المسؤول",
   "Total":"إجمالي",
@@ -327,6 +331,7 @@
   "Monthly Task Status":"حالة المهام شهريا",
   "Task Periority Distribution":"توزيع الأولويات للمهام",
   "Tasks by Employee":"المهام حسب الموظف",
+  "Monthly Task Creation Trend":"تدفق المهام شهريا",
   "Period":"فترة",
   "Calculate":"احسب", 
   "Calculation":"الحساب",
@@ -349,6 +354,7 @@
   "None":"لا يوجد",
   "Update Task Statuses":"تحديث حالات المهام",
   "My Tasks":"المهام الخاصة بي",
+  "Number of Tasks":"عدد المهام",
   "Profile Picture":"صورة الملف الشخصي",
   "Current Password":"كلمة المرور الحالية",
   "New Password":"كلمة المرور الجديدة",
@@ -488,8 +494,9 @@
   "Progress Report of":"تقرير مرحلي ل",
   "No employees/tasks found for the selected period.":"لم يتم العثور على موظفين/مهام للفترة المحددة.",
   "Total Tasks":"إجمالي المهام",
-  "Tasks by Employee chart unavailable for this selection.":"رسم بياني للمهام حسب الموظف غير متاح لهذا الاختيار.",
-  "Task Priority Distribution":"توزيع الأولويات للمهام"
+  "Monthly Status":"حالة المهام شهريا",
+  "Charts":"الرسوم البيانية",
+  "Tasks by Employee chart unavailable for this selection.":"رسم بياني للمهام حسب الموظف غير متاح لهذا الاختيار."
 }
 
 

@@ -39,6 +39,7 @@
   "Name": "Name",
   "Code": "Code",
   "Multiplier": "Multiplier",
+  "Status": "Status",
   "Sort Order": "Sort Order",
   "Date": "Date",
   "Actions": "Actions",
@@ -299,6 +300,7 @@
   "Search":"Search",
   "Select Employee":"Select Employee",
   "Select":"Select",
+  "Month":"Month",
   "Months":"Months",
   "Day":"Day",
   "Days":"Days",
@@ -310,9 +312,11 @@
   "Minutes":"Minutes",
   "Mothly":"Mothly",
   "Yearly":"Yearly",
+  "Monthly Employee Statistics":"Monthly Employee Statistics",
   "Or Up To Date":"Or Up To Date",
   "Current month only":"Current month only",
   "Since start of year":"Since start of year",
+  "Totals":"Totals",
   "Since":"Since",
   "Total Assigned":"Total Assigned",
   "Total":"Total",
@@ -327,6 +331,7 @@
   "Monthly Task Status":"Monthly Task Status",
   "Task Periority Distribution":"Task Periority Distribution",
   "Tasks by Employee":"Tasks by Employee",
+  "Monthly Task Creation Trend":"Monthly Task Creation Trend",
   "Period":"Period",
   "Calculate":"Calculate",
   "Calculation":"Calculation",
@@ -349,6 +354,7 @@
   "None":"None",
   "Update Task Statuses":"Update Task Statuses",
   "My Tasks":"My Tasks",
+  "Number of Tasks":"Number of Tasks",
   "Profile Picture":"Profile Picture",
   "Current Password":"Current Password",
   "New Password":"New Password",
@@ -488,8 +494,9 @@
   "Progress Report of":"Progress Report of",
   "No employees/tasks found for the selected period.":"No employees/tasks found for the selected period.",
   "Total Tasks":"Total Tasks",
-  "Tasks by Employee chart unavailable for this selection.":"Tasks by Employee chart unavailable for this selection.",
-  "Task Priority Distribution":"Task Priority Distribution"
+  "Monthly Status":"Monthly Status",
+  "Charts":"Charts",
+  "Tasks by Employee chart unavailable for this selection.":"Tasks by Employee chart unavailable for this selection."
 }
 
 

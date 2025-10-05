@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "admin_dashboard": "Admin Dashboard",
+    "manager_dashboard": "Manager Dashboard",
+    "employee_dashboard": "Employee Dashboard",
+    "notifications": "Notifications",
+    "view_all_notifications": "View All Notifications",
+    "dashboard": "Dashboard",
+    "views": "Views",
+    "view_notifications": "View Notifications",
+    "view_tasks": "View Tasks",
+    "my_tasks": "My Tasks",
+    "view_users": "View Users",
+    "register": "Register",
+    "tasks": "Tasks",
+    "new_task": "New Task",
+    "users": "Users",
+    "create_new_user": "Create New User",
+    "settings": "Settings",
+    "management": "Management",
+    "settings_dashboard": "Settings Dashboard",
+    "add_kpis": "Add KPIs",
+    "progress_report": "Progress Report",
+    "monthly_stats": "Monthly Stats",
+    "employees_progress": "Employees Progress",
+    "admin_settings": "Admin Settings",
+    "system_management": "System Management",
+    "manage_quality_types": "Manage Quality Types",
+    "manage_priority_types": "Manage Priority Types",
+    "evaluation_settings": "Evaluation Settings",
+    "extras": "Extras",
+    "pages": "Pages",
+    "languages": "Languages",
+    "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
+    "tasks_label": "Tasks"
+  },
+  "breadcrumb": {
+    "home": "Home",
+    "dashboard": "Dashboard"
+  },
+  "language": {
+    "english": "ENGLISH",
+    "arabic": "عربي"
+  },
+  "footer": {
+    "copyright": "Copyright"
+  }
+  ,
+  "role": {
+    "info": {
+      "admin": "As an <strong>Admin</strong>, you can create tasks for any user in the system and manage all aspects of the project management system.",
+      "manager": "As a <strong>Manager</strong>, you can create tasks for your subordinates and manage your team's workflow.",
+      "employee": "As an <strong>Employee</strong>, you can create tasks for yourself to track your work progress."
+    }
+  }
+}
+
+
