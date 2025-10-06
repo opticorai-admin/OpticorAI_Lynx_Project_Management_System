@@ -417,11 +417,13 @@
   
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   {{ status_by_user|json_script:"statusByUserData" }}
   {{ priority_by_user|json_script:"priorityByUserData" }}
   {{ priority_types|json_script:"priorityTypes" }}
   {{ priority_report|json_script:"priorityReportCounts" }}
   <script>
+    if (window.Chart && window.ChartDataLabels) { Chart.register(window.ChartDataLabels); }
     const priorityTypes = JSON.parse(document.getElementById('priorityTypes').textContent || '[]');
     const priorityReportCounts = JSON.parse(document.getElementById('priorityReportCounts').textContent || '{}');
     const priorityPalette = ['#007bff', '#28a745', '#dc3545', '#17a2b8', '#ffc107', '#6f42c1'];
@@ -443,7 +445,17 @@
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
-          title: { display: false }
+          title: { display: false },
+          datalabels: {
+            display: 'auto',
+            anchor: 'center',
+            align: 'center',
+            color: function(ctx){
+              try { return getComputedStyle(ctx.chart.canvas).getPropertyValue('--chart-label-color') || '#ffffff'; } catch(e){ return '#ffffff'; }
+            },
+            font: { weight: 'bold', size: 12 },
+            formatter: function(value){ return value; }
+          }
         },
         layout: { padding: 20 },
         scales: {
@@ -473,7 +485,20 @@
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
-          title: { display: false }
+          title: { display: false },
+          datalabels: {
+            display: 'auto',
+            anchor: 'center',
+            align: 'center',
+            color: '#ffffff',
+            font: { weight: 'bold', size: 12 },
+            formatter: function(value, ctx){
+              var dataArr = ctx.chart.data.datasets[0].data;
+              var sum = dataArr.reduce(function(a,b){ return (parseFloat(a)||0) + (parseFloat(b)||0); }, 0);
+              var pct = sum ? (value * 100 / sum) : 0;
+              return pct.toFixed(0) + '%';
+            }
+          }
         },
         layout: { padding: 20 }
       }
@@ -500,7 +525,15 @@
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
-          title: { display: false }
+          title: { display: false },
+          datalabels: {
+            display: 'auto',
+            anchor: 'center',
+            align: 'center',
+            color: '#ffffff',
+            font: { weight: 'bold', size: 11 },
+            formatter: function(value){ return value; }
+          }
         },
         layout: { padding: 20 },
         scales: {
@@ -529,7 +562,15 @@
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } },
-          title: { display: false }
+          title: { display: false },
+          datalabels: {
+            display: 'auto',
+            anchor: 'center',
+            align: 'center',
+            color: '#ffffff',
+            font: { weight: 'bold', size: 11 },
+            formatter: function(value){ return value; }
+          }
         },
         layout: { padding: 20 },
         scales: {

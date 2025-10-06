@@ -489,7 +489,9 @@
   "No employees/tasks found for the selected period.":"No employees/tasks found for the selected period.",
   "Total Tasks":"Total Tasks",
   "Tasks by Employee chart unavailable for this selection.":"Tasks by Employee chart unavailable for this selection.",
-  "Task Priority Distribution":"Task Priority Distribution"
+  "Task Priority Distribution":"Task Priority Distribution",
+  "Month":"Month",
+  "Status":"Status"
 }
 
 

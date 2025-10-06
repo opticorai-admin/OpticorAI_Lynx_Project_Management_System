@@ -489,7 +489,9 @@
   "No employees/tasks found for the selected period.":"لم يتم العثور على موظفين/مهام للفترة المحددة.",
   "Total Tasks":"إجمالي المهام",
   "Tasks by Employee chart unavailable for this selection.":"رسم بياني للمهام حسب الموظف غير متاح لهذا الاختيار.",
-  "Task Priority Distribution":"توزيع الأولويات للمهام"
+  "Task Priority Distribution":"توزيع الأولويات للمهام",
+  "Month":"شهر",
+  "Status":"الحالة"
 }
 
 

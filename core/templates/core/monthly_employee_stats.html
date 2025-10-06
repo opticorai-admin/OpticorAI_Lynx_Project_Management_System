@@ -232,11 +232,11 @@ document.addEventListener('DOMContentLoaded', function(){
         // Keep specific headings in English as requested
         var englishHeadings = [
           'Monthly Employee Statistics', 'Charts', 'Monthly Status', 
-          'Number of Tasks', 'Status', 'Monthly Task Creation Trend', 'Month'
+          'Number of Tasks', 'Status', 'Monthly Task Creation Trend'
         ];
         
         englishHeadings.forEach(function(englishText) {
-          var elements = document.querySelectorAll('[data-i18n*="' + englishText + '"], .apexcharts-title-text');
+          var elements = document.querySelectorAll('[data-i18n*="' + englishText + '"]');
           elements.forEach(function(el) {
             if (el.textContent !== englishText && lang === 'ar') {
               el.textContent = englishText;
@@ -253,6 +253,7 @@ document.addEventListener('DOMContentLoaded', function(){
           'High': 'عالي',
           'Medium': 'متوسط',
           'Low': 'منخفض',
+          'Status': 'الحالة',
           'Total Assigned': 'إجمالي المسؤول',
           'Completed': 'منجز',
           'Completion Rate': 'معدل الانتهاء',
