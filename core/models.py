@@ -1069,3 +1069,32 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"To: {self.recipient.get_full_name()} | {self.message[:40]}..."
+
+
+class TaskReminder(models.Model):
+    """One-off scheduled reminder for a task.
+
+    Uses the existing Notification + email signal to actually send email when
+    the reminder is triggered. Keeping it separate avoids touching Task logic.
+    """
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='reminders')
+    recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='task_reminders')
+    scheduled_for = models.DateField(db_index=True)
+    message = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_task_reminders')
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-scheduled_for', '-created_at']
+        indexes = [
+            models.Index(fields=['scheduled_for', 'recipient'], name='reminder_sched_recipient_idx'),
+        ]
+
+    def __str__(self):
+        return f"Reminder for Task #{self.task_id} to {self.recipient.get_full_name()} on {self.scheduled_for}"
+
+    def mark_sent(self):
+        from django.utils import timezone
+        self.sent_at = timezone.now()
+        self.save(update_fields=['sent_at'])

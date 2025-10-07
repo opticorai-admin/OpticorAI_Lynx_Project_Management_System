@@ -24,6 +24,7 @@ from io import BytesIO
 from calendar import monthrange
 from django.db.models.functions import Concat
 from django.db.models import Value as V, Avg
+from django.db.models import Exists, OuterRef
 from django.core.cache import cache
 from django.db.models import Case, When, IntegerField, Count
 from django.db.models import Count, Case, When, IntegerField
@@ -34,10 +35,33 @@ from .forms import (
     EmailLoginForm, TwoFactorForm, UserRegistrationForm, UserProfileEditForm, 
     TaskRegistrationForm, TaskEditForm, KPIForm, QualityTypeForm,
     AdminSetPasswordForm, TaskPriorityTypeForm, TaskEvaluationSettingsForm,
-    TaskEvaluationForm
+    TaskEvaluationForm, TaskReminderForm
 )
 
 User = get_user_model()
+# --- Task Reminder Creation ---
+class CreateTaskReminderView(LoginRequiredMixin, View):
+    def post(self, request, task_id):
+        task = get_object_or_404(Task, id=task_id)
+        user = request.user
+        # Permission: only the task responsible or their manager can create reminders
+        allowed = False
+        if user.user_type == 'employee' and task.responsible == user:
+            allowed = True
+        elif user.user_type == 'manager' and (task.responsible == user or task.responsible.under_supervision == user):
+            allowed = True
+        if not allowed:
+            messages.error(request, 'You do not have permission to add reminders for this task.')
+            return redirect('core:task-detail', task_id=task_id)
+
+        form = TaskReminderForm(request.POST, user=user, task=task)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Reminder scheduled successfully.')
+        else:
+            messages.error(request, 'Invalid reminder data.')
+        return redirect('core:projects')
+
 
 # --- Authentication Views ---
 class LoginView(View):
@@ -680,6 +704,18 @@ class ProjectsView(LoginRequiredMixin, View):
                 Q(responsible__username__icontains=employee_query) |
                 Q(full_name__icontains=employee_query)
             )
+        # Annotate if a reminder exists (unsent, today or future)
+        try:
+            from .models import TaskReminder
+            today = business_localdate()
+            reminder_subq = TaskReminder.objects.filter(
+                task=OuterRef('pk'),
+                sent_at__isnull=True,
+                scheduled_for__gte=today,
+            )
+            tasks_qs = tasks_qs.annotate(has_reminder=Exists(reminder_subq))
+        except Exception:
+            tasks_qs = tasks_qs.annotate(has_reminder=V(False, output_field=IntegerField()))
 
         # Calculate average completion
         avg_tasks = tasks_qs.aggregate(avg=Avg('percentage_completion'))['avg'] or 0

@@ -30,6 +30,7 @@ urlpatterns = [
     path('projects/task/<int:task_id>/edit/', views.EditTaskView.as_view(), name='edit-task'),
     path('projects/task/<int:task_id>/delete/', views.DeleteTaskView.as_view(), name='delete-task'),
     path('projects/task/<int:task_id>/download/', views.DownloadFileView.as_view(), name='download-file'),
+    path('projects/task/<int:task_id>/reminder/', views.CreateTaskReminderView.as_view(), name='create-task-reminder'),
     path('projects/task/<int:task_id>/upload/', views.UploadTaskFileView.as_view(), name='upload-task-file'),
     path('projects/task/<int:task_id>/approve/', views.ApproveTaskView.as_view(), name='approve-task'),
     path('projects/task/<int:task_id>/evaluate/', views.EvaluateTaskView.as_view(), name='evaluate-task'),

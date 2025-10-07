@@ -214,9 +214,42 @@
                                             <i class="fa fa-upload"></i>
                                         </a>
                                     {% endif %}
+                                    <button type="button" class="btn btn-sm {% if task.has_reminder %}btn-success{% else %}btn-outline-secondary{% endif %}" data-toggle="modal" data-target="#reminderModal-{{ task.id }}" title="Schedule reminder">
+                                        <i class="fa fa-bell"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
+                        <!-- Reminder Modal -->
+                        <div class="modal fade" id="reminderModal-{{ task.id }}" tabindex="-1" role="dialog" aria-labelledby="reminderLabel-{{ task.id }}" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title" id="reminderLabel-{{ task.id }}">Schedule Email Reminder</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                  <span aria-hidden="true">&times;</span>
+                                </button>
+                              </div>
+                              <form method="post" action="{% url 'core:create-task-reminder' task.id %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                  <div class="form-group">
+                                    <label for="reminder-date-{{ task.id }}">Reminder Date</label>
+                                    <input id="reminder-date-{{ task.id }}" name="scheduled_for" type="date" class="form-control" required>
+                                  </div>
+                                  <div class="form-group mb-0">
+                                    <label for="reminder-message-{{ task.id }}">Message (optional)</label>
+                                    <textarea id="reminder-message-{{ task.id }}" name="message" class="form-control" rows="3" placeholder="Optional message"></textarea>
+                                  </div>
+                                </div>
+                                <div class="modal-footer">
+                                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                  <button type="submit" class="btn btn-primary">Save Reminder</button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
                         {% empty %}
                         <tr>
                             <td colspan="8" class="text-center text-muted">

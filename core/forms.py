@@ -1,5 +1,5 @@
 from django import forms
-from core.models import CustomUser, Task, PRIORITY_CHOICES, TASK_STATUS_CHOICES, APPROVAL_STATUS_CHOICES, EVALUATION_STATUS_CHOICES, KPI, QualityType, TaskPriorityType, TaskEvaluationSettings
+from core.models import CustomUser, Task, PRIORITY_CHOICES, TASK_STATUS_CHOICES, APPROVAL_STATUS_CHOICES, EVALUATION_STATUS_CHOICES, KPI, QualityType, TaskPriorityType, TaskEvaluationSettings, TaskReminder
 from django.contrib.auth.forms import UserCreationForm
 from datetime import date
 from django.db import models
@@ -723,6 +723,39 @@ class TaskEditForm(forms.ModelForm):
             raise forms.ValidationError("Target date cannot be before start date")
         
         return target_date 
+
+
+class TaskReminderForm(forms.ModelForm):
+    """Form to schedule a one-off email reminder for a task."""
+    scheduled_for = forms.DateField(
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        label="Reminder Date"
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional message'}),
+        required=False,
+        label="Message (optional)"
+    )
+
+    class Meta:
+        model = TaskReminder
+        fields = ['scheduled_for', 'message']
+
+    def __init__(self, *args, **kwargs):
+        self.task = kwargs.pop('task', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        reminder = super().save(commit=False)
+        if self.task:
+            reminder.task = self.task
+            reminder.recipient = self.task.responsible
+        if self.user:
+            reminder.created_by = self.user
+        if commit:
+            reminder.save()
+        return reminder
 
 # --- KPI Management Forms ---
 class KPIForm(forms.ModelForm):

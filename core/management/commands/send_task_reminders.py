@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 
-from core.models import Task, CustomUser, Notification
+from core.models import Task, CustomUser, Notification, TaskReminder
 from core.utils.dates import business_localdate
 
 
@@ -49,6 +49,27 @@ class Command(BaseCommand):
                         message=f"Reminder: Task '{task.issue_action[:40]}...' submitted by {task.responsible.get_full_name()} is awaiting your evaluation/approval.",
                         link=f"/projects/task/{task.id}/",
                     )
+        except Exception:
+            pass
+
+        # (d) One-off user-scheduled reminders due today
+        try:
+            due_reminders = TaskReminder.objects.filter(
+                scheduled_for=today,
+                sent_at__isnull=True,
+            ).select_related('task', 'recipient')
+            for r in due_reminders:
+                task = r.task
+                recipient = r.recipient
+                if recipient and getattr(recipient, 'email', None):
+                    message = r.message or f"Reminder: Task '{task.issue_action[:40]}...' scheduled for {task.target_date or task.close_date or ''}."
+                    Notification.objects.create(
+                        recipient=recipient,
+                        sender=None,
+                        message=message,
+                        link=f"/projects/task/{task.id}/",
+                    )
+                    r.mark_sent()
         except Exception:
             pass
 
