@@ -320,11 +320,13 @@
             {% for task in pending_evaluations %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">
+                  <a href="{% url 'core:task-detail' task.id %}" target="_blank" rel="noopener noreferrer" class="text-dark" style="text-decoration: none;">
                   <div data-i18n-skip>
                     <strong>{{ task.issue_action|truncatechars:30 }}</strong><br>
                     <small class="text-muted">{{ task.responsible.get_full_name }}</small>
                   </div>
-                  <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                  </a>
+                  <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
                     Evaluate
                   </a>
                 </div>
@@ -617,7 +619,7 @@
                     <strong>{{ task.issue_action|truncatechars:30 }}</strong><br>
                     <small class="text-muted">{{ task.responsible.get_full_name }}</small>
                   </div>
-                  <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                  <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
                     Review
                   </a>
                 </div>

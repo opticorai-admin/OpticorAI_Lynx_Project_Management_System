@@ -159,10 +159,12 @@
                         {% for task in tasks %}
                         <tr>
                             <td class="text-nowrap" style="min-width:140px;">
-                                <strong data-i18n-skip>{{ task.issue_action|truncatechars:40 }}</strong>
-                                {% if task.is_overdue %}
-                                    <span class="badge badge-danger ml-1">Overdue</span>
-                                {% endif %}
+                                <a href="{% url 'core:task-detail' task.id %}" target="_blank" rel="noopener noreferrer" class="text-dark" style="text-decoration: none;">
+                                    <strong data-i18n-skip>{{ task.issue_action|truncatechars:40 }}</strong>
+                                    {% if task.is_overdue %}
+                                        <span class="badge badge-danger ml-1">Overdue</span>
+                                    {% endif %}
+                                </a>
                             </td>
                             <td class="text-nowrap" style="min-width:110px;" data-i18n-skip>{{ task.responsible.get_full_name }}</td>
                             <td class="text-nowrap d-none d-sm-table-cell" style="min-width:90px;" data-i18n-skip>
@@ -193,7 +195,7 @@
                             <td class="text-nowrap d-none d-md-table-cell" style="min-width:110px;">{{ task.close_date }}</td>
                             <td class="text-nowrap" style="min-width:110px;">
                                 <div class="btn-group" role="group">
-                                    <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
                                         <i class="fa fa-eye"></i>
                                     </a>
                                     {% if task|can_user_edit:user %}
@@ -210,7 +212,7 @@
                                         </a>
                                     {% endif %}
                                     {% if task|can_user_upload_file:user %}
-                                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-success">
+                                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-success" target="_blank" rel="noopener noreferrer">
                                             <i class="fa fa-upload"></i>
                                         </a>
                                     {% endif %}
@@ -275,12 +277,14 @@
                 <div class="col-12 col-md-6">
                     <div class="card mx-2 mb-3">
                         <div class="card-body">
+                            <a href="{% url 'core:task-detail' task.id %}" target="_blank" rel="noopener noreferrer" class="text-dark" style="text-decoration: none;">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="card-title" data-i18n-skip>{{ task.issue_action|truncatechars:50 }}</h6>
                                 <span class="badge badge-{% if task.status == 'open' %}primary{% elif task.status == 'closed' %}success{% else %}warning{% endif %}" data-i18n-skip>
                                     {{ task.get_status_display }}
                                 </span>
                             </div>
+                        </a>
                             
                             <p class="card-text">
                                 <small class="text-muted">
@@ -309,7 +313,7 @@
                             </div>
                             
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{% url 'core:task-detail' task.id %}" class="btn btn-outline-primary">
+                                <a href="{% url 'core:task-detail' task.id %}" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
                                     <i class="fa fa-eye"></i> View
                                 </a>
                                 {% if task|can_user_edit:user %}
