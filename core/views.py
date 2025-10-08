@@ -462,10 +462,17 @@ class DashboardView(LoginRequiredMixin, View):
             except (PageNotAnInteger, EmptyPage):
                 pending_evaluations = pending_evaluations_paginator.page(1)
             
-            # Get pending approvals from subordinate tasks
+            # Get submitted tasks from subordinates awaiting manager review/evaluation
+            # A task is considered "submitted" if the employee provided a submission (text or file)
+            # and it has not been evaluated yet. We avoid touching approval logic (approved/disapproved).
             pending_approvals_qs = subordinate_tasks.select_related('responsible').filter(
-                approval_status='pending'
-            ).order_by('-created_date')
+                (
+                    Q(employee_submitted_at__isnull=False)
+                    | Q(file_upload__isnull=False)
+                    | (Q(employee_submission__isnull=False) & ~Q(employee_submission__exact=''))
+                ),
+                evaluation_status='pending'
+            ).order_by('-employee_submitted_at', '-created_date')
             
             # Paginate pending approvals (3 per page)
             pending_approvals_paginator = Paginator(pending_approvals_qs, 3)
