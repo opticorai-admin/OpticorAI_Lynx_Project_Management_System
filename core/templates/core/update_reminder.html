@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Update Reminder</h4>
+                    <div class="card-header-actions">
+                        <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back to Task
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="{{ form.scheduled_for.id_for_label }}">{{ form.scheduled_for.label }}</label>
+                            {{ form.scheduled_for }}
+                            {% if form.scheduled_for.help_text %}
+                                <small class="form-text text-muted">{{ form.scheduled_for.help_text }}</small>
+                            {% endif %}
+                            {% if form.scheduled_for.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.scheduled_for.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.message.id_for_label }}">{{ form.message.label }}</label>
+                            {{ form.message }}
+                            {% if form.message.help_text %}
+                                <small class="form-text text-muted">{{ form.message.help_text }}</small>
+                            {% endif %}
+                            {% if form.message.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.message.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Update Reminder</button>
+                            <a href="{% url 'core:task-detail' task.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

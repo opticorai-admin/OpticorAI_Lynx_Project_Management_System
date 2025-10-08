@@ -22,6 +22,9 @@ urlpatterns = [
     path('users/<int:pk>/delete/', views.UserDeleteView.as_view(), name='delete-user'),
     path('users/<int:user_id>/set-password/', views.AdminSetPasswordView.as_view(), name='admin-set-password'),
     
+    # --- Email Testing (Admin Only) ---
+    path('test-email/', views.TestEmailView.as_view(), name='test-email'),
+    
     # --- Task Management ---
     path('projects/', views.ProjectsView.as_view(), name='projects'),
     path('views/my-tasks/', views.MyTasksView.as_view(), name='my-tasks'),
@@ -31,6 +34,8 @@ urlpatterns = [
     path('projects/task/<int:task_id>/delete/', views.DeleteTaskView.as_view(), name='delete-task'),
     path('projects/task/<int:task_id>/download/', views.DownloadFileView.as_view(), name='download-file'),
     path('projects/task/<int:task_id>/reminder/', views.CreateTaskReminderView.as_view(), name='create-task-reminder'),
+    path('projects/task/<int:task_id>/reminder/<int:reminder_id>/update/', views.UpdateTaskReminderView.as_view(), name='update-task-reminder'),
+    path('projects/task/<int:task_id>/reminder/<int:reminder_id>/delete/', views.DeleteTaskReminderView.as_view(), name='delete-task-reminder'),
     path('projects/task/<int:task_id>/upload/', views.UploadTaskFileView.as_view(), name='upload-task-file'),
     path('projects/task/<int:task_id>/approve/', views.ApproveTaskView.as_view(), name='approve-task'),
     path('projects/task/<int:task_id>/evaluate/', views.EvaluateTaskView.as_view(), name='evaluate-task'),

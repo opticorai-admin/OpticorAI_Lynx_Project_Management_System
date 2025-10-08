@@ -60,20 +60,26 @@ def send_notification_email(sender, instance: Notification, created: bool, **kwa
 
         from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None) or "no-reply@example.com"
 
+        # Log email attempt for debugging
+        logger.info(f"Attempting to send email to {recipient_email} from {from_email}")
+        
         result = send_mail(
             subject=subject,
             message=body,
             from_email=from_email,
             recipient_list=[recipient_email],
-            fail_silently=True,  # Never break the request flow
+            fail_silently=True,  # Changed back to True to prevent request failures
         )
-        if not result:
+        
+        if result:
+            logger.info(f"Email sent successfully to {recipient_email} for Notification id={instance.id}")
+        else:
             logger.warning(
-                "Notification email reported as not sent (send_mail returned 0). To=%s",
-                recipient_email,
+                "Notification email reported as not sent (send_mail returned 0). To=%s, From=%s",
+                recipient_email, from_email
             )
-    except Exception:  # noqa: BLE001 - best-effort; log and continue
-        logger.exception("Failed to send notification email for Notification id=%s", instance.id)
+    except Exception as e:  # noqa: BLE001 - best-effort; log and continue
+        logger.exception("Failed to send notification email for Notification id=%s. Error: %s", instance.id, str(e))
 
 
 @receiver(post_save, sender=CustomUser)

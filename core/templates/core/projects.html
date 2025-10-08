@@ -216,7 +216,7 @@
                                             <i class="fa fa-upload"></i>
                                         </a>
                                     {% endif %}
-                                    <button type="button" class="btn btn-sm {% if task.has_reminder %}btn-success{% else %}btn-outline-secondary{% endif %}" data-toggle="modal" data-target="#reminderModal-{{ task.id }}" title="Schedule reminder">
+                                    <button type="button" class="btn btn-sm {% if task.has_reminder_annotation %}btn-success{% else %}btn-outline-secondary{% endif %}" data-toggle="modal" data-target="#reminderModal-{{ task.id }}" title="Schedule reminder">
                                         <i class="fa fa-bell"></i>
                                     </button>
                                 </div>
@@ -237,7 +237,8 @@
                                 <div class="modal-body">
                                   <div class="form-group">
                                     <label for="reminder-date-{{ task.id }}">Reminder Date</label>
-                                    <input id="reminder-date-{{ task.id }}" name="scheduled_for" type="date" class="form-control" required>
+                                    <input id="reminder-date-{{ task.id }}" name="scheduled_for" type="date" class="form-control" required min="{% now 'Y-m-d' %}">
+                                    <small class="form-text text-muted">Select today's date to send email immediately to <strong>{{ task.responsible.get_full_name }}</strong>.</small>
                                   </div>
                                   <div class="form-group mb-0">
                                     <label for="reminder-message-{{ task.id }}">Message (optional)</label>

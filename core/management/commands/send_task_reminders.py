@@ -57,7 +57,7 @@ class Command(BaseCommand):
             due_reminders = TaskReminder.objects.filter(
                 scheduled_for=today,
                 sent_at__isnull=True,
-            ).select_related('task', 'recipient')
+            ).select_related('task', 'recipient', 'created_by')
             for r in due_reminders:
                 task = r.task
                 recipient = r.recipient
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                     message = r.message or f"Reminder: Task '{task.issue_action[:40]}...' scheduled for {task.target_date or task.close_date or ''}."
                     Notification.objects.create(
                         recipient=recipient,
-                        sender=None,
+                        sender=r.created_by,  # Use the user who originally created the reminder
                         message=message,
                         link=f"/projects/task/{task.id}/",
                     )

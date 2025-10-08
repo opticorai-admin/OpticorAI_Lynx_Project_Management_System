@@ -40,8 +40,44 @@ from .forms import (
 
 User = get_user_model()
 # --- Task Reminder Creation ---
+class TestEmailView(LoginRequiredMixin, View):
+    """Test email functionality - for debugging purposes"""
+    def get(self, request):
+        if not request.user.is_superuser:
+            messages.error(request, 'Only superusers can test email functionality.')
+            return redirect('core:dashboard')
+        
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        try:
+            result = send_mail(
+                subject='Test Email from Task Management System',
+                message='This is a test email to verify email configuration is working.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+            if result:
+                messages.success(request, f'Test email sent successfully to {request.user.email}!')
+            else:
+                messages.error(request, 'Email sending failed - check configuration.')
+        except Exception as e:
+            error_msg = str(e)
+            if 'Username and Password not accepted' in error_msg:
+                messages.error(request, 'Email test failed: Gmail authentication error. Please check EMAIL_SETUP_GUIDE.md for App Password setup.')
+            else:
+                messages.error(request, f'Email test failed: {error_msg}')
+        
+        return redirect('core:dashboard')
+
+
 class CreateTaskReminderView(LoginRequiredMixin, View):
     def post(self, request, task_id):
+        from django.utils import timezone
+        from datetime import date
+        from core.models import Notification
+        
         task = get_object_or_404(Task, id=task_id)
         user = request.user
         # Permission: only the task responsible or their manager can create reminders
@@ -56,11 +92,152 @@ class CreateTaskReminderView(LoginRequiredMixin, View):
 
         form = TaskReminderForm(request.POST, user=user, task=task)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Reminder scheduled successfully.')
+            reminder = form.save()
+            
+            # Check if the reminder is scheduled for today
+            today = date.today()
+            if reminder.scheduled_for == today:
+                # Send immediate email notification
+                recipient = task.responsible
+                if recipient and recipient.email:
+                    message = reminder.message or f"Reminder: Task '{task.issue_action[:40]}...' is scheduled for {task.target_date or task.close_date or ''}."
+                    try:
+                        # Create notification (this triggers the email signal)
+                        notification = Notification.objects.create(
+                            recipient=recipient,
+                            sender=user,  # Use the actual user who created the reminder
+                            message=message,
+                            link=f"/projects/task/{task.id}/",
+                        )
+                        # Mark reminder as sent immediately
+                        reminder.mark_sent()
+                        messages.success(request, f'Reminder sent immediately to {recipient.get_full_name()} ({recipient.email}). Check notifications.')
+                    except Exception as e:
+                        error_msg = str(e)
+                        if 'Username and Password not accepted' in error_msg:
+                            messages.warning(request, 'Reminder scheduled but email failed: Gmail authentication error. Please check EMAIL_SETUP_GUIDE.md for App Password setup.')
+                        else:
+                            messages.warning(request, f'Reminder scheduled but email could not be sent immediately. Error: {error_msg[:100]}')
+                else:
+                    messages.warning(request, f'Reminder scheduled but {recipient.get_full_name() if recipient else "task responsible"} has no email address.')
+            else:
+                messages.success(request, f'Reminder scheduled for {reminder.scheduled_for.strftime("%B %d, %Y")}.')
         else:
             messages.error(request, 'Invalid reminder data.')
-        return redirect('core:projects')
+        return redirect('core:task-detail', task_id=task_id)
+
+
+class UpdateTaskReminderView(LoginRequiredMixin, View):
+    def get(self, request, task_id, reminder_id):
+        from core.models import TaskReminder
+        
+        task = get_object_or_404(Task, id=task_id)
+        reminder = get_object_or_404(TaskReminder, id=reminder_id, task=task)
+        user = request.user
+        
+        # Permission: only the task responsible or their manager can update reminders
+        allowed = False
+        if user.user_type == 'employee' and task.responsible == user:
+            allowed = True
+        elif user.user_type == 'manager' and (task.responsible == user or task.responsible.under_supervision == user):
+            allowed = True
+        elif user.user_type == 'admin':
+            allowed = True
+            
+        if not allowed:
+            messages.error(request, 'You do not have permission to update reminders for this task.')
+            return redirect('core:task-detail', task_id=task_id)
+
+        form = TaskReminderForm(instance=reminder, user=user, task=task)
+        return render(request, 'core/update_reminder.html', {
+            'form': form,
+            'task': task,
+            'reminder': reminder
+        })
+    
+    def post(self, request, task_id, reminder_id):
+        from core.models import TaskReminder
+        from datetime import date
+        from core.models import Notification
+        
+        task = get_object_or_404(Task, id=task_id)
+        reminder = get_object_or_404(TaskReminder, id=reminder_id, task=task)
+        user = request.user
+        
+        # Permission: only the task responsible or their manager can update reminders
+        allowed = False
+        if user.user_type == 'employee' and task.responsible == user:
+            allowed = True
+        elif user.user_type == 'manager' and (task.responsible == user or task.responsible.under_supervision == user):
+            allowed = True
+        elif user.user_type == 'admin':
+            allowed = True
+            
+        if not allowed:
+            messages.error(request, 'You do not have permission to update reminders for this task.')
+            return redirect('core:task-detail', task_id=task_id)
+
+        form = TaskReminderForm(request.POST, instance=reminder, user=user, task=task)
+        if form.is_valid():
+            updated_reminder = form.save()
+            
+            # Check if the reminder is scheduled for today
+            today = date.today()
+            if updated_reminder.scheduled_for == today and not updated_reminder.sent_at:
+                # Send immediate email notification
+                recipient = task.responsible
+                if recipient and recipient.email:
+                    message = updated_reminder.message or f"Reminder: Task '{task.issue_action[:40]}...' is scheduled for {task.target_date or task.close_date or ''}."
+                    try:
+                        # Create notification (this triggers the email signal)
+                        notification = Notification.objects.create(
+                            recipient=recipient,
+                            sender=user,  # Use the actual user who created the reminder
+                            message=message,
+                            link=f"/projects/task/{task.id}/",
+                        )
+                        # Mark reminder as sent immediately
+                        updated_reminder.mark_sent()
+                        messages.success(request, f'Reminder updated and sent immediately to {recipient.get_full_name()} ({recipient.email}). Check notifications.')
+                    except Exception as e:
+                        error_msg = str(e)
+                        if 'Username and Password not accepted' in error_msg:
+                            messages.warning(request, 'Reminder updated but email failed: Gmail authentication error. Please check EMAIL_SETUP_GUIDE.md for App Password setup.')
+                        else:
+                            messages.warning(request, f'Reminder updated but email could not be sent immediately. Error: {error_msg[:100]}')
+                else:
+                    messages.warning(request, f'Reminder updated but {recipient.get_full_name() if recipient else "task responsible"} has no email address.')
+            else:
+                messages.success(request, f'Reminder updated for {updated_reminder.scheduled_for.strftime("%B %d, %Y")}.')
+        else:
+            messages.error(request, 'Invalid reminder data.')
+        return redirect('core:task-detail', task_id=task_id)
+
+
+class DeleteTaskReminderView(LoginRequiredMixin, View):
+    def post(self, request, task_id, reminder_id):
+        from core.models import TaskReminder
+        
+        task = get_object_or_404(Task, id=task_id)
+        reminder = get_object_or_404(TaskReminder, id=reminder_id, task=task)
+        user = request.user
+        
+        # Permission: only the task responsible or their manager can delete reminders
+        allowed = False
+        if user.user_type == 'employee' and task.responsible == user:
+            allowed = True
+        elif user.user_type == 'manager' and (task.responsible == user or task.responsible.under_supervision == user):
+            allowed = True
+        elif user.user_type == 'admin':
+            allowed = False
+            
+        if not allowed:
+            messages.error(request, 'You do not have permission to delete reminders for this task.')
+            return redirect('core:task-detail', task_id=task_id)
+
+        reminder.delete()
+        messages.success(request, 'Reminder deleted successfully.')
+        return redirect('core:task-detail', task_id=task_id)
 
 
 # --- Authentication Views ---
@@ -709,13 +886,11 @@ class ProjectsView(LoginRequiredMixin, View):
             from .models import TaskReminder
             today = business_localdate()
             reminder_subq = TaskReminder.objects.filter(
-                task=OuterRef('pk'),
-                sent_at__isnull=True,
-                scheduled_for__gte=today,
+                task=OuterRef('pk')
             )
-            tasks_qs = tasks_qs.annotate(has_reminder=Exists(reminder_subq))
+            tasks_qs = tasks_qs.annotate(has_reminder_annotation=Exists(reminder_subq))
         except Exception:
-            tasks_qs = tasks_qs.annotate(has_reminder=V(False, output_field=IntegerField()))
+            tasks_qs = tasks_qs.annotate(has_reminder_annotation=V(False, output_field=IntegerField()))
 
         # Calculate average completion
         avg_tasks = tasks_qs.aggregate(avg=Avg('percentage_completion'))['avg'] or 0
@@ -757,6 +932,17 @@ class MyTasksView(LoginRequiredMixin, View):
         status_filter = request.GET.get('status', '')
         if status_filter:
             tasks_qs = tasks_qs.filter(status=status_filter)
+
+        # Annotate if a reminder exists (unsent, today or future)
+        try:
+            from .models import TaskReminder
+            today = business_localdate()
+            reminder_subq = TaskReminder.objects.filter(
+                task=OuterRef('pk')
+            )
+            tasks_qs = tasks_qs.annotate(has_reminder_annotation=Exists(reminder_subq))
+        except Exception:
+            tasks_qs = tasks_qs.annotate(has_reminder_annotation=V(False, output_field=IntegerField()))
 
         avg_tasks = tasks_qs.aggregate(avg=Avg('percentage_completion'))['avg'] or 0
 
@@ -825,7 +1011,28 @@ class NewTaskView(LoginRequiredMixin, View):
 class TaskDetailView(LoginRequiredMixin, View):
     def get(self, request, task_id):
         user = request.user
-        task = get_object_or_404(Task.objects.select_related('responsible', 'priority', 'kpi'), id=task_id)
+        
+        # Annotate if a reminder exists (unsent, today or future)
+        try:
+            from .models import TaskReminder
+            today = business_localdate()
+            reminder_subq = TaskReminder.objects.filter(
+                task=OuterRef('pk')
+            )
+            task = get_object_or_404(
+                Task.objects.select_related('responsible', 'priority', 'kpi')
+                .prefetch_related('reminders')
+                .annotate(has_reminder_annotation=Exists(reminder_subq)), 
+                id=task_id
+            )
+        except Exception:
+            task = get_object_or_404(
+                Task.objects.select_related('responsible', 'priority', 'kpi')
+                .prefetch_related('reminders')
+                .annotate(has_reminder_annotation=V(False, output_field=IntegerField())), 
+                id=task_id
+            )
+        
         if not task.can_user_manage(user):
             messages.error(request, 'You do not have permission to view this task.')
             return redirect('core:dashboard')

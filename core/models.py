@@ -779,6 +779,11 @@ class Task(models.Model):
         return self.target_date and self.target_date < business_localdate() and self.status != 'closed'
 
     @property
+    def has_reminder(self):
+        """Check if task has any reminders (regardless of sent status or date)"""
+        return self.reminders.exists()
+
+    @property
     def can_be_approved_by(self):
         """Return users who can approve this task"""
         if self.created_by.user_type == 'manager':

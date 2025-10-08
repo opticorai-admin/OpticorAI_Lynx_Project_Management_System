@@ -728,8 +728,13 @@ class TaskEditForm(forms.ModelForm):
 class TaskReminderForm(forms.ModelForm):
     """Form to schedule a one-off email reminder for a task."""
     scheduled_for = forms.DateField(
-        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        label="Reminder Date"
+        widget=forms.DateInput(attrs={
+            'class': 'form-control', 
+            'type': 'date',
+            'min': '{{ today }} '  # Will be set in __init__
+        }),
+        label="Reminder Date",
+        help_text="Select today's date to send email immediately to the task responsible."
     )
     message = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional message'}),
@@ -742,9 +747,21 @@ class TaskReminderForm(forms.ModelForm):
         fields = ['scheduled_for', 'message']
 
     def __init__(self, *args, **kwargs):
+        from datetime import date
         self.task = kwargs.pop('task', None)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Set minimum date to today
+        today = date.today().strftime('%Y-%m-%d')
+        self.fields['scheduled_for'].widget.attrs['min'] = today
+
+    def clean_scheduled_for(self):
+        from datetime import date
+        scheduled_for = self.cleaned_data.get('scheduled_for')
+        if scheduled_for and scheduled_for < date.today():
+            raise forms.ValidationError('Reminder date cannot be in the past.')
+        return scheduled_for
 
     def save(self, commit=True):
         reminder = super().save(commit=False)
