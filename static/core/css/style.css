@@ -5541,16 +5541,146 @@ button.close {
   .modal-lg {
     max-width: 800px; } }
 
-/* iPhone and mobile viewport fixes */
+/* iPhone and iOS Safari specific fixes */
 @supports (-webkit-touch-callout: none) {
   .modal-dialog-centered {
     min-height: 100vh;
     min-height: -webkit-fill-available;
+    /* Fix iPhone horizontal positioning issues */
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
   }
   
   .modal-content {
     max-height: 100vh;
     max-height: -webkit-fill-available;
+    /* Ensure proper width and prevent text cutoff */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* iPhone-specific modal positioning fixes */
+  .modal {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  .modal-dialog {
+    margin-left: 8px;
+    margin-right: 8px;
+    max-width: calc(100% - 16px);
+    width: calc(100% - 16px);
+  }
+  
+  /* Fix text cutoff in modal headers and content */
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .modal-title {
+    padding-right: 40px; /* Space for close button */
+    word-break: break-word;
+  }
+  
+  /* iPhone form element fixes */
+  .modal-body input,
+  .modal-body textarea,
+  .modal-body select {
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 6px;
+  }
+  
+  /* Specific iPhone fixes for reminder modal */
+  [id^="reminderModal"] .modal-dialog {
+    margin: 8px;
+    max-width: calc(100vw - 16px);
+    width: calc(100vw - 16px);
+  }
+  
+  [id^="reminderModal"] .modal-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  [id^="reminderModal"] .modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 12px 16px;
+  }
+  
+  [id^="reminderModal"] .modal-body {
+    padding: 16px;
+  }
+  
+  [id^="reminderModal"] .modal-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  /* Fix iPhone textarea behavior */
+  [id^="reminderModal"] textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-size: 16px; /* Prevent zoom */
+  }
+  
+  /* iPhone button improvements */
+  [id^="reminderModal"] .btn {
+    min-height: 44px;
+    font-size: 16px;
+    border-radius: 6px;
+  }
+  
+  /* Critical iPhone fixes for text cutoff */
+  [id^="reminderModal"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  [id^="reminderModal"] .modal-dialog {
+    position: relative;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    margin: 8px auto !important;
+  }
+  
+  /* Ensure text is not cut off */
+  [id^="reminderModal"] .modal-title,
+  [id^="reminderModal"] .modal-body label,
+  [id^="reminderModal"] .modal-body small,
+  [id^="reminderModal"] .form-text {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+  }
+  
+  /* Fix close button positioning */
+  [id^="reminderModal"] .modal-header .close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    z-index: 1051;
+    padding: 8px;
+    margin: 0;
+  }
+  
+  /* Ensure form elements don't overflow */
+  [id^="reminderModal"] .form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -5682,6 +5812,7 @@ button.close {
   .modal-body select {
     font-size: 16px; /* Prevents zoom on iOS */
     -webkit-appearance: none;
+    appearance: none;
     border-radius: 4px;
   }
   
