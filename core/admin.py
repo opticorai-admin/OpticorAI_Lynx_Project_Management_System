@@ -1,4 +1,4 @@
-from core.models import CustomUser, Task, KPI, QualityType, Notification, TaskEvaluationSettings, TaskPriorityType, EmployeeProgress
+from core.models import CustomUser, Task, KPI, QualityType, Notification, TaskEvaluationSettings, TaskPriorityType, EmployeeProgress, Note, NoteReminder
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
@@ -185,3 +185,45 @@ class EmployeeProgressAdmin(admin.ModelAdmin):
     )
 
 admin.site.register(EmployeeProgress, EmployeeProgressAdmin)
+
+class NoteAdmin(admin.ModelAdmin):
+    list_display = ['title', 'created_by', 'assigned_to', 'is_flagged', 'related_task', 'created_at', 'updated_at']
+    list_filter = ['is_flagged', 'created_at', 'updated_at', 'created_by', 'assigned_to']
+    search_fields = ['title', 'content', 'created_by__username', 'assigned_to__username']
+    readonly_fields = ['created_at', 'updated_at']
+    list_editable = ['is_flagged']
+    date_hierarchy = 'created_at'
+    list_select_related = ('created_by', 'assigned_to', 'related_task')
+    
+    fieldsets = (
+        ('Note Information', {
+            'fields': ('title', 'content', 'is_flagged')
+        }),
+        ('Assignment', {
+            'fields': ('created_by', 'assigned_to', 'related_task')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+class NoteReminderAdmin(admin.ModelAdmin):
+    list_display = ['note', 'recipient', 'scheduled_for', 'created_by', 'sent_at', 'created_at']
+    list_filter = ['scheduled_for', 'sent_at', 'created_at', 'recipient']
+    search_fields = ['note__title', 'recipient__username', 'message']
+    readonly_fields = ['created_at', 'sent_at']
+    date_hierarchy = 'scheduled_for'
+    list_select_related = ('note', 'recipient', 'created_by')
+    
+    fieldsets = (
+        ('Reminder Information', {
+            'fields': ('note', 'recipient', 'scheduled_for', 'message')
+        }),
+        ('Status', {
+            'fields': ('created_by', 'sent_at', 'created_at')
+        }),
+    )
+
+admin.site.register(Note, NoteAdmin)
+admin.site.register(NoteReminder, NoteReminderAdmin)

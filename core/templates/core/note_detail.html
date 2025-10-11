@@ -1,0 +1,265 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:my-notes' %}">My Notes</a></li>
+<li class="breadcrumb-item active">Note Details</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>
+                    <i class="fa fa-sticky-note"></i> {{ note.title }}
+                    {% if note.is_flagged %}
+                        <i class="fa fa-flag text-warning ml-2" title="Flagged"></i>
+                    {% endif %}
+                </strong>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'core:my-notes' %}" class="btn btn-secondary btn-sm">
+                        <i class="fa fa-arrow-left"></i> Back to Notes
+                    </a>
+                    {% if can_edit %}
+                    <a href="{% url 'core:edit-note' note.id %}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-edit"></i> Edit
+                    </a>
+                    {% endif %}
+                    {% if can_delete %}
+                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteNoteModal">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Note Information -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Note Information</h5>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th style="width: 150px;">Created By:</th>
+                                <td>
+                                    <span class="badge badge-secondary">{{ note.created_by.get_full_name }}</span>
+                                    <small class="text-muted ml-2">({{ note.created_by.username }})</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Assigned To:</th>
+                                <td>
+                                    <span class="badge badge-info">{{ note.assigned_to.get_full_name }}</span>
+                                    <small class="text-muted ml-2">({{ note.assigned_to.username }})</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Created Date:</th>
+                                <td>{{ note.created_at|date:"F d, Y h:i A" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Last Updated:</th>
+                                <td>{{ note.updated_at|date:"F d, Y h:i A" }}</td>
+                            </tr>
+                            {% if note.related_task %}
+                            <tr>
+                                <th>Related Task:</th>
+                                <td>
+                                    <a href="{% url 'core:task-detail' note.related_task.id %}" class="btn btn-sm btn-outline-info">
+                                        <i class="fa fa-paperclip"></i> {{ note.related_task.issue_action|truncatechars:40 }}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th>Flagged/Starred:</th>
+                                <td>
+                                    <form method="post" action="{% url 'core:toggle-note-flag' note.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm {% if note.is_flagged %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                                            <i class="fa fa-flag"></i> 
+                                            {% if note.is_flagged %}Flagged{% else %}Not Flagged{% endif %}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5>Note Content</h5>
+                    <div class="card">
+                        <div class="card-body" style="min-height: 200px; white-space: pre-wrap;">{{ note.content }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reminders Section -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong><i class="fa fa-bell"></i> Email Reminders</strong>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createReminderModal">
+                                    <i class="fa fa-plus"></i> Add Reminder
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if reminders %}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Scheduled Date</th>
+                                            <th>Recipient</th>
+                                            <th>Message</th>
+                                            <th>Created By</th>
+                                            <th>Status</th>
+                                            <th style="width: 80px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for reminder in reminders %}
+                                        <tr {% if reminder.sent_at %}class="table-success"{% endif %}>
+                                            <td>{{ reminder.scheduled_for|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge badge-info">{{ reminder.recipient.get_full_name }}</span>
+                                            </td>
+                                            <td>{{ reminder.message|default:"(No message)"|truncatechars:50 }}</td>
+                                            <td>
+                                                <small>{{ reminder.created_by.get_full_name|default:"System" }}</small>
+                                            </td>
+                                            <td>
+                                                {% if reminder.sent_at %}
+                                                    <span class="badge badge-success">
+                                                        <i class="fa fa-check"></i> Sent
+                                                    </span>
+                                                    <br>
+                                                    <small class="text-muted">{{ reminder.sent_at|date:"M d, Y h:i A" }}</small>
+                                                {% else %}
+                                                    <span class="badge badge-warning">
+                                                        <i class="fa fa-clock-o"></i> Pending
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not reminder.sent_at %}
+                                                <form method="post" action="{% url 'core:delete-note-reminder' note.id reminder.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                                            onclick="return confirm('Are you sure you want to delete this reminder?');">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info text-center">
+                                <i class="fa fa-info-circle"></i> No reminders set for this note yet.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Note Modal -->
+{% if can_delete %}
+<div class="modal fade" id="deleteNoteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Delete Note</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this note? This action cannot be undone.</p>
+                <p><strong>Note Title:</strong> {{ note.title }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'core:delete-note' note.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa fa-trash"></i> Delete Note
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Create Reminder Modal -->
+<div class="modal fade" id="createReminderModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add Email Reminder</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form method="post" action="{% url 'core:create-note-reminder' note.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="scheduled_for">Reminder Date *</label>
+                        <input type="date" class="form-control" id="scheduled_for" name="scheduled_for" 
+                               min="{{ today|date:'Y-m-d' }}" required>
+                        <small class="form-text text-muted">Select today's date to send email immediately.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="recipient">Send Reminder To *</label>
+                        <select class="form-control" id="recipient" name="recipient" required>
+                            {% if user.user_type == 'manager' %}
+                                <option value="{{ user.id }}">{{ user.get_full_name }} (Me)</option>
+                                {% for subordinate in user.get_subordinates %}
+                                <option value="{{ subordinate.id }}">{{ subordinate.get_full_name }} ({{ subordinate.username }})</option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="{{ user.id }}">{{ user.get_full_name }} (Me)</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message (Optional)</label>
+                        <textarea class="form-control" id="message" name="message" rows="3" 
+                                  placeholder="Optional reminder message"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-bell"></i> Create Reminder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date as minimum for the date picker
+document.addEventListener('DOMContentLoaded', function() {
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('scheduled_for').setAttribute('min', today);
+});
+</script>
+{% endblock %}
+

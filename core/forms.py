@@ -1,5 +1,5 @@
 from django import forms
-from core.models import CustomUser, Task, PRIORITY_CHOICES, TASK_STATUS_CHOICES, APPROVAL_STATUS_CHOICES, EVALUATION_STATUS_CHOICES, KPI, QualityType, TaskPriorityType, TaskEvaluationSettings, TaskReminder
+from core.models import CustomUser, Task, PRIORITY_CHOICES, TASK_STATUS_CHOICES, APPROVAL_STATUS_CHOICES, EVALUATION_STATUS_CHOICES, KPI, QualityType, TaskPriorityType, TaskEvaluationSettings, TaskReminder, Note, NoteReminder
 from django.contrib.auth.forms import UserCreationForm
 from datetime import date
 from django.db import models
@@ -1129,4 +1129,195 @@ class AdminSetPasswordForm(forms.Form):
     def save(self, user):
         user.set_password(self.cleaned_data['password1'])
         user.save()
-        return user 
+        return user
+
+
+# --- Note Management Forms ---
+class NoteForm(forms.ModelForm):
+    """
+    Form for creating and editing personal notes.
+    - Managers can create notes for themselves and their subordinates
+    - Employees can create notes for themselves only
+    """
+    title = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter note title'
+        }),
+        label="Note Title"
+    )
+    content = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 6,
+            'placeholder': 'Enter your note content...'
+        }),
+        label="Note Content"
+    )
+    assigned_to = forms.ModelChoiceField(
+        queryset=CustomUser.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        label="Assigned To",
+        help_text="Select who this note is for"
+    )
+    is_flagged = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label="Flag/Star this note",
+        help_text="Flag this note for quick access"
+    )
+    related_task = forms.ModelChoiceField(
+        queryset=Task.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        label="Related Task (Optional)",
+        help_text="Link this note to a specific task"
+    )
+
+    class Meta:
+        model = Note
+        fields = ['title', 'content', 'assigned_to', 'is_flagged', 'related_task']
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super(NoteForm, self).__init__(*args, **kwargs)
+        
+        if self.user:
+            # Set queryset for assigned_to based on user role
+            if self.user.user_type == 'manager':
+                # Managers can create notes for themselves and their subordinates
+                subordinates = CustomUser.objects.filter(under_supervision=self.user)
+                self.fields['assigned_to'].queryset = CustomUser.objects.filter(
+                    models.Q(id=self.user.id) | models.Q(under_supervision=self.user)
+                )
+                # Set related tasks to tasks visible to the manager
+                self.fields['related_task'].queryset = Task.objects.filter(
+                    models.Q(responsible=self.user) | models.Q(responsible__under_supervision=self.user)
+                ).select_related('responsible')
+            elif self.user.user_type == 'employee':
+                # Employees can only create notes for themselves
+                self.fields['assigned_to'].queryset = CustomUser.objects.filter(id=self.user.id)
+                self.fields['assigned_to'].initial = self.user
+                self.fields['assigned_to'].widget.attrs['readonly'] = True
+                # Set related tasks to only employee's own tasks
+                self.fields['related_task'].queryset = Task.objects.filter(
+                    responsible=self.user
+                ).select_related('responsible')
+            
+            # Override label_from_instance to show full names
+            self.fields['assigned_to'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.username})"
+            self.fields['related_task'].label_from_instance = lambda obj: f"{obj.issue_action[:50]}..."
+
+    def clean_assigned_to(self):
+        assigned_to = self.cleaned_data.get('assigned_to')
+        if self.user:
+            if self.user.user_type == 'employee':
+                # Employees can only create notes for themselves
+                if assigned_to != self.user:
+                    raise forms.ValidationError("You can only create notes for yourself.")
+            elif self.user.user_type == 'manager':
+                # Managers can create notes for themselves or their subordinates
+                if assigned_to != self.user and assigned_to.under_supervision != self.user:
+                    raise forms.ValidationError("You can only create notes for yourself or your subordinates.")
+        return assigned_to
+
+    def save(self, commit=True):
+        note = super(NoteForm, self).save(commit=False)
+        if self.user:
+            note.created_by = self.user
+        if commit:
+            note.save()
+        return note
+
+
+class NoteReminderForm(forms.ModelForm):
+    """Form to schedule email reminders for notes."""
+    scheduled_for = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control', 
+            'type': 'date'
+        }),
+        label="Reminder Date",
+        help_text="Select today's date to send email immediately."
+    )
+    recipient = forms.ModelChoiceField(
+        queryset=CustomUser.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        label="Send Reminder To",
+        help_text="Select who should receive this reminder"
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 
+            'rows': 3, 
+            'placeholder': 'Optional reminder message'
+        }),
+        required=False,
+        label="Message (Optional)"
+    )
+
+    class Meta:
+        model = NoteReminder
+        fields = ['scheduled_for', 'recipient', 'message']
+
+    def __init__(self, *args, **kwargs):
+        self.note = kwargs.pop('note', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Set minimum date to today
+        today = date.today().strftime('%Y-%m-%d')
+        self.fields['scheduled_for'].widget.attrs['min'] = today
+        
+        # Set recipient queryset based on user role
+        if self.user:
+            if self.user.user_type == 'manager':
+                # Managers can send reminders to themselves and their subordinates
+                self.fields['recipient'].queryset = CustomUser.objects.filter(
+                    models.Q(id=self.user.id) | models.Q(under_supervision=self.user)
+                )
+            elif self.user.user_type == 'employee':
+                # Employees can only set reminders for themselves
+                self.fields['recipient'].queryset = CustomUser.objects.filter(id=self.user.id)
+                self.fields['recipient'].initial = self.user
+            
+            # Override label_from_instance to show full names
+            self.fields['recipient'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.username})"
+
+    def clean_scheduled_for(self):
+        scheduled_for = self.cleaned_data.get('scheduled_for')
+        if scheduled_for and scheduled_for < date.today():
+            raise forms.ValidationError('Reminder date cannot be in the past.')
+        return scheduled_for
+
+    def clean_recipient(self):
+        recipient = self.cleaned_data.get('recipient')
+        if self.user:
+            if self.user.user_type == 'employee':
+                # Employees can only set reminders for themselves
+                if recipient != self.user:
+                    raise forms.ValidationError("You can only set reminders for yourself.")
+            elif self.user.user_type == 'manager':
+                # Managers can set reminders for themselves or their subordinates
+                if recipient != self.user and recipient.under_supervision != self.user:
+                    raise forms.ValidationError("You can only set reminders for yourself or your subordinates.")
+        return recipient
+
+    def save(self, commit=True):
+        reminder = super().save(commit=False)
+        if self.note:
+            reminder.note = self.note
+        if self.user:
+            reminder.created_by = self.user
+        if commit:
+            reminder.save()
+        return reminder 

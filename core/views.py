@@ -4344,3 +4344,363 @@ class RecalculateProgressView(LoginRequiredMixin, View):
         
         messages.success(request, f'Progress recalculated successfully. Total Score: {progress_record.total_progress_score}%')
         return redirect('core:employee-progress-detail', employee_id=employee_id)
+
+
+# --- My Note Management Views ---
+class MyNotesListView(LoginRequiredMixin, View):
+    """
+    View to list all notes for the current user.
+    - Shows notes assigned to the user and notes created by the user
+    - Managers can see notes for their subordinates
+    - Supports filtering by flagged status and search
+    """
+    def get(self, request):
+        user = request.user
+        
+        # Admin users cannot use notes feature
+        if user.user_type == 'admin':
+            messages.error(request, 'Note feature is only available for managers and employees.')
+            return redirect('core:dashboard')
+        
+        from core.models import Note
+        
+        # Base queryset: notes assigned to user or created by user
+        notes = Note.objects.filter(
+            Q(assigned_to=user) | Q(created_by=user)
+        ).select_related('created_by', 'assigned_to', 'related_task').distinct()
+        
+        # Filter options
+        filter_type = request.GET.get('filter', 'all')
+        if filter_type == 'flagged':
+            notes = notes.filter(is_flagged=True)
+        elif filter_type == 'my_notes':
+            notes = notes.filter(assigned_to=user)
+        elif filter_type == 'created':
+            notes = notes.filter(created_by=user)
+        
+        # Search functionality
+        search_query = request.GET.get('search', '')
+        if search_query:
+            notes = notes.filter(
+                Q(title__icontains=search_query) |
+                Q(content__icontains=search_query)
+            )
+        
+        # Pagination
+        paginator = Paginator(notes, 15)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        # Count statistics
+        total_notes = Note.objects.filter(Q(assigned_to=user) | Q(created_by=user)).distinct().count()
+        flagged_notes = Note.objects.filter(Q(assigned_to=user) | Q(created_by=user), is_flagged=True).distinct().count()
+        my_notes = Note.objects.filter(assigned_to=user).count()
+        created_notes = Note.objects.filter(created_by=user).count()
+        
+        context = {
+            'notes': page_obj,
+            'search_query': search_query,
+            'filter_type': filter_type,
+            'total_notes': total_notes,
+            'flagged_notes': flagged_notes,
+            'my_notes': my_notes,
+            'created_notes': created_notes,
+        }
+        return render(request, 'core/my_notes.html', context)
+
+
+class CreateNoteView(LoginRequiredMixin, View):
+    """View to create a new note"""
+    def get(self, request):
+        user = request.user
+        
+        # Admin users cannot create notes
+        if user.user_type == 'admin':
+            messages.error(request, 'Note feature is only available for managers and employees.')
+            return redirect('core:dashboard')
+        
+        from core.forms import NoteForm
+        form = NoteForm(user=user)
+        context = {'form': form, 'action': 'create'}
+        return render(request, 'core/note_form.html', context)
+    
+    def post(self, request):
+        user = request.user
+        
+        # Admin users cannot create notes
+        if user.user_type == 'admin':
+            messages.error(request, 'Note feature is only available for managers and employees.')
+            return redirect('core:dashboard')
+        
+        from core.forms import NoteForm
+        form = NoteForm(request.POST, user=user)
+        if form.is_valid():
+            note = form.save()
+            
+            # Send notification if note is assigned to someone else
+            if note.assigned_to != user:
+                from core.models import Notification
+                Notification.objects.create(
+                    recipient=note.assigned_to,
+                    sender=user,
+                    message=f"{user.get_full_name()} created a note for you: '{note.title}'",
+                    link=f"/my-notes/{note.id}/"
+                )
+            
+            messages.success(request, 'Note created successfully!')
+            return redirect('core:my-notes')
+        
+        context = {'form': form, 'action': 'create'}
+        return render(request, 'core/note_form.html', context)
+
+
+class NoteDetailView(LoginRequiredMixin, View):
+    """View to display and edit note details"""
+    def get(self, request, note_id):
+        user = request.user
+        
+        from core.models import Note
+        try:
+            note = Note.objects.select_related('created_by', 'assigned_to', 'related_task').get(id=note_id)
+        except Note.DoesNotExist:
+            messages.error(request, 'Note not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can view this note
+        if not note.can_user_view(user):
+            messages.error(request, 'You do not have permission to view this note.')
+            return redirect('core:my-notes')
+        
+        # Get reminders for this note
+        reminders = note.reminders.select_related('recipient', 'created_by').all()
+        
+        context = {
+            'note': note,
+            'reminders': reminders,
+            'can_edit': note.can_user_edit(user),
+            'can_delete': note.can_user_delete(user),
+        }
+        return render(request, 'core/note_detail.html', context)
+
+
+class EditNoteView(LoginRequiredMixin, View):
+    """View to edit an existing note"""
+    def get(self, request, note_id):
+        user = request.user
+        
+        from core.models import Note
+        try:
+            note = Note.objects.get(id=note_id)
+        except Note.DoesNotExist:
+            messages.error(request, 'Note not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can edit this note
+        if not note.can_user_edit(user):
+            messages.error(request, 'You do not have permission to edit this note.')
+            return redirect('core:note-detail', note_id=note_id)
+        
+        from core.forms import NoteForm
+        form = NoteForm(instance=note, user=user)
+        context = {'form': form, 'note': note, 'action': 'edit'}
+        return render(request, 'core/note_form.html', context)
+    
+    def post(self, request, note_id):
+        user = request.user
+        
+        from core.models import Note
+        try:
+            note = Note.objects.get(id=note_id)
+        except Note.DoesNotExist:
+            messages.error(request, 'Note not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can edit this note
+        if not note.can_user_edit(user):
+            messages.error(request, 'You do not have permission to edit this note.')
+            return redirect('core:note-detail', note_id=note_id)
+        
+        from core.forms import NoteForm
+        form = NoteForm(request.POST, instance=note, user=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Note updated successfully!')
+            return redirect('core:note-detail', note_id=note_id)
+        
+        context = {'form': form, 'note': note, 'action': 'edit'}
+        return render(request, 'core/note_form.html', context)
+
+
+class DeleteNoteView(LoginRequiredMixin, View):
+    """View to delete a note"""
+    def post(self, request, note_id):
+        user = request.user
+        
+        from core.models import Note
+        try:
+            note = Note.objects.get(id=note_id)
+        except Note.DoesNotExist:
+            messages.error(request, 'Note not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can delete this note
+        if not note.can_user_delete(user):
+            messages.error(request, 'You do not have permission to delete this note.')
+            return redirect('core:note-detail', note_id=note_id)
+        
+        note.delete()
+        messages.success(request, 'Note deleted successfully!')
+        return redirect('core:my-notes')
+
+
+class ToggleNoteFlagView(LoginRequiredMixin, View):
+    """View to toggle flag/star status of a note"""
+    def post(self, request, note_id):
+        user = request.user
+        
+        from core.models import Note
+        try:
+            note = Note.objects.get(id=note_id)
+        except Note.DoesNotExist:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'Note not found'})
+            messages.error(request, 'Note not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can view this note
+        if not note.can_user_view(user):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'Permission denied'})
+            messages.error(request, 'You do not have permission to modify this note.')
+            return redirect('core:my-notes')
+        
+        # Toggle flag status
+        note.is_flagged = not note.is_flagged
+        note.save(update_fields=['is_flagged'])
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'is_flagged': note.is_flagged})
+        
+        messages.success(request, f'Note {"flagged" if note.is_flagged else "unflagged"} successfully!')
+        return redirect('core:note-detail', note_id=note_id)
+
+
+class CreateNoteReminderView(LoginRequiredMixin, View):
+    """View to create a reminder for a note"""
+    def post(self, request, note_id):
+        user = request.user
+        
+        from core.models import Note, NoteReminder, Notification
+        try:
+            note = Note.objects.get(id=note_id)
+        except Note.DoesNotExist:
+            messages.error(request, 'Note not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can view this note
+        if not note.can_user_view(user):
+            messages.error(request, 'You do not have permission to set reminders for this note.')
+            return redirect('core:my-notes')
+        
+        from core.forms import NoteReminderForm
+        form = NoteReminderForm(request.POST, user=user, note=note)
+        if form.is_valid():
+            reminder = form.save()
+            
+            # Check if the reminder is scheduled for today
+            today = date.today()
+            if reminder.scheduled_for == today:
+                # Send immediate email notification
+                recipient = reminder.recipient
+                if recipient and recipient.email:
+                    message = reminder.message or f"Reminder: Note '{note.title}'"
+                    try:
+                        # Create notification (this triggers the email signal)
+                        notification = Notification.objects.create(
+                            recipient=recipient,
+                            sender=user,
+                            message=message,
+                            link=f"/my-notes/{note.id}/",
+                        )
+                        # Mark reminder as sent immediately
+                        reminder.mark_sent()
+                        messages.success(request, f'Reminder sent immediately to {recipient.get_full_name()} ({recipient.email}).')
+                    except Exception as e:
+                        messages.warning(request, f'Reminder scheduled but email could not be sent. Error: {str(e)[:100]}')
+                else:
+                    messages.warning(request, f'Reminder scheduled but {recipient.get_full_name() if recipient else "recipient"} has no email address.')
+            else:
+                messages.success(request, f'Reminder scheduled for {reminder.scheduled_for}.')
+            
+            return redirect('core:note-detail', note_id=note_id)
+        
+        # If form is invalid, redirect back with errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f'{field}: {error}')
+        return redirect('core:note-detail', note_id=note_id)
+
+
+class DeleteNoteReminderView(LoginRequiredMixin, View):
+    """View to delete a note reminder"""
+    def post(self, request, note_id, reminder_id):
+        user = request.user
+        
+        from core.models import Note, NoteReminder
+        try:
+            note = Note.objects.get(id=note_id)
+            reminder = NoteReminder.objects.get(id=reminder_id, note=note)
+        except (Note.DoesNotExist, NoteReminder.DoesNotExist):
+            messages.error(request, 'Reminder not found.')
+            return redirect('core:my-notes')
+        
+        # Check if user can delete this reminder (creator or note owner)
+        if reminder.created_by != user and not note.can_user_edit(user):
+            messages.error(request, 'You do not have permission to delete this reminder.')
+            return redirect('core:note-detail', note_id=note_id)
+        
+        reminder.delete()
+        messages.success(request, 'Reminder deleted successfully!')
+        return redirect('core:note-detail', note_id=note_id)
+
+
+class GetTasksByEmployeeView(LoginRequiredMixin, View):
+    """AJAX endpoint to get tasks for a specific employee"""
+    def get(self, request, employee_id):
+        user = request.user
+        
+        # Check if user can view this employee's tasks
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'error': 'Employee not found'}, status=404)
+        
+        # Permission check
+        can_view_tasks = False
+        if user.user_type == 'manager':
+            # Managers can view tasks for themselves and their subordinates
+            if employee == user or employee.under_supervision == user:
+                can_view_tasks = True
+        elif user.user_type == 'employee':
+            # Employees can only view their own tasks
+            if employee == user:
+                can_view_tasks = True
+        
+        if not can_view_tasks:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        # Get tasks for the employee
+        tasks = Task.objects.filter(responsible=employee).select_related('responsible')
+        
+        # Format tasks for JSON response
+        tasks_data = []
+        for task in tasks:
+            tasks_data.append({
+                'id': task.id,
+                'title': task.issue_action[:50] + ('...' if len(task.issue_action) > 50 else ''),
+                'status': task.status,
+                'target_date': task.target_date.strftime('%Y-%m-%d') if task.target_date else None,
+                'percentage_completion': task.percentage_completion,
+            })
+        
+        return JsonResponse({'tasks': tasks_data})

@@ -1,0 +1,162 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:my-notes' %}">My Notes</a></li>
+<li class="breadcrumb-item active">
+    {% if action == 'create' %}Create Note{% else %}Edit Note{% endif %}
+</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>
+                    <i class="fa fa-sticky-note"></i> 
+                    {% if action == 'create' %}Create New Note{% else %}Edit Note{% endif %}
+                </strong>
+                <a href="{% if note %}{% url 'core:note-detail' note.id %}{% else %}{% url 'core:my-notes' %}{% endif %}" 
+                   class="btn btn-secondary btn-sm">
+                    <i class="fa fa-arrow-left"></i> 
+                    {% if note %}Back to Note{% else %}Back to Notes{% endif %}
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="post" {% if action == 'create' %}action="{% url 'core:create-note' %}"{% else %}action="{% url 'core:edit-note' note.id %}"{% endif %}>
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label for="{{ form.title.id_for_label }}">
+                                {{ form.title.label }} *
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small">
+                                    {{ form.title.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.title.help_text %}
+                                <small class="form-text text-muted">{{ form.title.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.content.id_for_label }}">
+                                {{ form.content.label }} *
+                            </label>
+                            {{ form.content }}
+                            {% if form.content.errors %}
+                                <div class="text-danger small">
+                                    {{ form.content.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.content.help_text %}
+                                <small class="form-text text-muted">{{ form.content.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="{{ form.assigned_to.id_for_label }}">
+                                {{ form.assigned_to.label }} *
+                            </label>
+                            {{ form.assigned_to }}
+                            {% if form.assigned_to.errors %}
+                                <div class="text-danger small">
+                                    {{ form.assigned_to.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.assigned_to.help_text %}
+                                <small class="form-text text-muted">{{ form.assigned_to.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.related_task.id_for_label }}">
+                                {{ form.related_task.label }}
+                            </label>
+                            {{ form.related_task }}
+                            {% if form.related_task.errors %}
+                                <div class="text-danger small">
+                                    {{ form.related_task.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.related_task.help_text %}
+                                <small class="form-text text-muted">{{ form.related_task.help_text }}</small>
+                            {% endif %}
+                            <div id="task-loading-indicator" class="text-muted small" style="display: none;">
+                                <i class="fa fa-spinner fa-spin"></i> Loading tasks...
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                {{ form.is_flagged }}
+                                <label class="form-check-label" for="{{ form.is_flagged.id_for_label }}">
+                                    {{ form.is_flagged.label }}
+                                </label>
+                            </div>
+                            {% if form.is_flagged.errors %}
+                                <div class="text-danger small">
+                                    {{ form.is_flagged.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.is_flagged.help_text %}
+                                <small class="form-text text-muted">{{ form.is_flagged.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="card bg-light mt-4">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fa fa-info-circle"></i> Note Information
+                                </h6>
+                                <ul class="list-unstyled mb-0">
+                                    <li><small><i class="fa fa-check"></i> Create personal notes</small></li>
+                                    <li><small><i class="fa fa-check"></i> Flag important notes</small></li>
+                                    <li><small><i class="fa fa-check"></i> Link to tasks</small></li>
+                                    <li><small><i class="fa fa-check"></i> Set email reminders</small></li>
+                                    {% if user.user_type == 'manager' %}
+                                    <li><small><i class="fa fa-check"></i> Create notes for employees</small></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form errors -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa {% if action == 'create' %}fa-plus{% else %}fa-save{% endif %}"></i>
+                        {% if action == 'create' %}Create Note{% else %}Update Note{% endif %}
+                    </button>
+                    <a href="{% if note %}{% url 'core:note-detail' note.id %}{% else %}{% url 'core:my-notes' %}{% endif %}" 
+                       class="btn btn-secondary">
+                        <i class="fa fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="{% static 'core/js/note_form.js' %}"></script>
+{% endblock %}
+{% endblock %}
+

@@ -176,6 +176,12 @@
               </li>
             </ul>
           </li>
+          
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'core:my-notes' %}">
+              <i class="fa fa-sticky-note"></i> <span data-i18n="nav.my_notes">My Notes</span>
+            </a>
+          </li>
           {% endif %}
           {% if user.user_type == 'admin' %}
           <li class="nav-item nav-dropdown">
@@ -314,6 +320,8 @@
         }).catch(function(){ /* ignore */ });
       });
     </script>
+
+    {% block extra_js %}{% endblock %}
 
 </body>
 {% endblock body %}

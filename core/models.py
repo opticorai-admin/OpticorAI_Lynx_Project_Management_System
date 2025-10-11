@@ -1103,3 +1103,118 @@ class TaskReminder(models.Model):
         from django.utils import timezone
         self.sent_at = timezone.now()
         self.save(update_fields=['sent_at'])
+
+
+class Note(models.Model):
+    """
+    Personal notes for managers and employees.
+    - Managers can create notes for themselves and their subordinates
+    - Employees can create notes for themselves only
+    - Notes can be flagged/starred for quick access
+    - Notes support email reminders
+    """
+    title = models.CharField(max_length=200, verbose_name="Note Title")
+    content = models.TextField(verbose_name="Note Content")
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='created_notes',
+        verbose_name="Created By"
+    )
+    assigned_to = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='assigned_notes',
+        verbose_name="Assigned To",
+        help_text="User for whom this note is created"
+    )
+    is_flagged = models.BooleanField(
+        default=False,
+        verbose_name="Flagged/Starred",
+        help_text="Flag this note for quick access"
+    )
+    related_task = models.ForeignKey(
+        Task,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notes',
+        verbose_name="Related Task",
+        help_text="Optional: Link this note to a specific task"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['assigned_to', 'is_flagged', '-created_at'], name='note_assigned_flagged_idx'),
+            models.Index(fields=['created_by', '-created_at'], name='note_created_by_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.title} (by {self.created_by.get_full_name()} for {self.assigned_to.get_full_name()})"
+
+    def can_user_view(self, user):
+        """Check if user can view this note"""
+        # Users can view notes assigned to them or created by them
+        if user == self.assigned_to or user == self.created_by:
+            return True
+        # Managers can view notes for their subordinates
+        if user.user_type == 'manager' and self.assigned_to.under_supervision == user:
+            return True
+        return False
+
+    def can_user_edit(self, user):
+        """Check if user can edit this note"""
+        # Only the creator can edit the note
+        return user == self.created_by
+
+    def can_user_delete(self, user):
+        """Check if user can delete this note"""
+        # Only the creator can delete the note
+        return user == self.created_by
+
+
+class NoteReminder(models.Model):
+    """
+    Email reminders for notes.
+    Similar to TaskReminder but for personal notes.
+    """
+    note = models.ForeignKey(Note, on_delete=models.CASCADE, related_name='reminders')
+    recipient = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='note_reminders',
+        verbose_name="Recipient"
+    )
+    scheduled_for = models.DateField(db_index=True, verbose_name="Reminder Date")
+    message = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Reminder Message",
+        help_text="Optional custom message for the reminder"
+    )
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_note_reminders'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-scheduled_for', '-created_at']
+        indexes = [
+            models.Index(fields=['scheduled_for', 'recipient'], name='note_reminder_sched_rcpt_idx'),
+        ]
+
+    def __str__(self):
+        return f"Reminder for Note '{self.note.title}' to {self.recipient.get_full_name()} on {self.scheduled_for}"
+
+    def mark_sent(self):
+        from django.utils import timezone
+        self.sent_at = timezone.now()
+        self.save(update_fields=['sent_at'])

@@ -86,6 +86,19 @@ urlpatterns = [
 
     # --- Monthly Employee Stats (Manager Only) ---
     path('settings/monthly-stats/', views.MonthlyEmployeeStatsView.as_view(), name='monthly-employee-stats'),
+    
+    # --- My Notes Management (Managers and Employees) ---
+    path('my-notes/', views.MyNotesListView.as_view(), name='my-notes'),
+    path('my-notes/create/', views.CreateNoteView.as_view(), name='create-note'),
+    path('my-notes/<int:note_id>/', views.NoteDetailView.as_view(), name='note-detail'),
+    path('my-notes/<int:note_id>/edit/', views.EditNoteView.as_view(), name='edit-note'),
+    path('my-notes/<int:note_id>/delete/', views.DeleteNoteView.as_view(), name='delete-note'),
+    path('my-notes/<int:note_id>/toggle-flag/', views.ToggleNoteFlagView.as_view(), name='toggle-note-flag'),
+    path('my-notes/<int:note_id>/reminder/', views.CreateNoteReminderView.as_view(), name='create-note-reminder'),
+    path('my-notes/<int:note_id>/reminder/<int:reminder_id>/delete/', views.DeleteNoteReminderView.as_view(), name='delete-note-reminder'),
+    
+    # --- AJAX Endpoints for My Notes ---
+    path('ajax/employee/<int:employee_id>/tasks/', views.GetTasksByEmployeeView.as_view(), name='get-employee-tasks'),
 ]
 
 if settings.DEBUG:

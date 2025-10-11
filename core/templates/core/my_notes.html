@@ -1,0 +1,220 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">Home</li>
+<li class="breadcrumb-item active">My Notes</li>
+{% endblock breadcrumb%}
+
+{% block content %}
+<div class="col-md-12">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>
+                    <i class="fa fa-sticky-note"></i> My Notes ({{ total_notes }})
+                </strong>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'core:create-note' %}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> New Note
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-sm-3">
+                    <div class="callout callout-info">
+                        <small class="text-muted">Total Notes</small>
+                        <br>
+                        <strong class="h4">{{ total_notes }}</strong>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="callout callout-warning">
+                        <small class="text-muted">Flagged/Starred</small>
+                        <br>
+                        <strong class="h4">{{ flagged_notes }}</strong>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="callout callout-success">
+                        <small class="text-muted">My Notes</small>
+                        <br>
+                        <strong class="h4">{{ my_notes }}</strong>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="callout callout-primary">
+                        <small class="text-muted">Created by Me</small>
+                        <br>
+                        <strong class="h4">{{ created_notes }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter Section -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <form method="get" action="{% url 'core:my-notes' %}" class="form-inline">
+                        <div class="input-group w-100">
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Search notes..." value="{{ search_query }}">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fa fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group float-right" role="group">
+                        <a href="{% url 'core:my-notes' %}" 
+                           class="btn btn-sm btn-outline-secondary {% if filter_type == 'all' %}active{% endif %}">
+                            All Notes
+                        </a>
+                        <a href="{% url 'core:my-notes' %}?filter=flagged" 
+                           class="btn btn-sm btn-outline-warning {% if filter_type == 'flagged' %}active{% endif %}">
+                            <i class="fa fa-flag"></i> Flagged
+                        </a>
+                        <a href="{% url 'core:my-notes' %}?filter=my_notes" 
+                           class="btn btn-sm btn-outline-success {% if filter_type == 'my_notes' %}active{% endif %}">
+                            My Notes
+                        </a>
+                        <a href="{% url 'core:my-notes' %}?filter=created" 
+                           class="btn btn-sm btn-outline-primary {% if filter_type == 'created' %}active{% endif %}">
+                            Created
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes List -->
+            {% if notes %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Title</th>
+                            <th style="width: 150px;">Assigned To</th>
+                            <th style="width: 150px;">Created By</th>
+                            <th style="width: 120px;">Created Date</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for note in notes %}
+                        <tr>
+                            <td class="text-center">
+                                <form method="post" action="{% url 'core:toggle-note-flag' note.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-link p-0 m-0" style="border: none; background: none;">
+                                        {% if note.is_flagged %}
+                                            <i class="fa fa-flag text-warning" title="Flagged"></i>
+                                        {% else %}
+                                            <i class="fa fa-flag-o text-muted" title="Not flagged"></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <a href="{% url 'core:note-detail' note.id %}" class="text-dark font-weight-bold">
+                                    {{ note.title|truncatechars:60 }}
+                                </a>
+                                {% if note.related_task %}
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fa fa-paperclip"></i> Task: {{ note.related_task.issue_action|truncatechars:40 }}
+                                    </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-info">{{ note.assigned_to.get_full_name }}</span>
+                                <br>
+                                <small class="text-muted">{{ note.assigned_to.username }}</small>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">{{ note.created_by.get_full_name }}</span>
+                                <br>
+                                <small class="text-muted">{{ note.created_by.username }}</small>
+                            </td>
+                            <td>
+                                <small>{{ note.created_at|date:"M d, Y" }}</small>
+                                <br>
+                                <small class="text-muted">{{ note.created_at|date:"h:i A" }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'core:note-detail' note.id %}" 
+                                       class="btn btn-sm btn-info" title="View Details">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    {% if note.created_by == user %}
+                                    <a href="{% url 'core:edit-note' note.id %}" 
+                                       class="btn btn-sm btn-primary" title="Edit">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if notes.has_other_pages %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if notes.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ notes.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in notes.paginator.page_range %}
+                    {% if notes.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > notes.number|add:'-3' and num < notes.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if notes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ notes.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_type != 'all' %}&filter={{ filter_type }}{% endif %}">
+                            Next
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="alert alert-info text-center" role="alert">
+                <i class="fa fa-info-circle"></i>
+                {% if search_query %}
+                    No notes found matching "{{ search_query }}".
+                {% else %}
+                    You don't have any notes yet. Click "New Note" to create your first note!
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
