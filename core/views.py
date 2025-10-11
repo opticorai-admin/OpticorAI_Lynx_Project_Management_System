@@ -462,16 +462,15 @@ class DashboardView(LoginRequiredMixin, View):
             except (PageNotAnInteger, EmptyPage):
                 pending_evaluations = pending_evaluations_paginator.page(1)
             
-            # Get submitted tasks from subordinates awaiting manager review/evaluation
-            # A task is considered "submitted" if the employee provided a submission (text or file)
-            # and it has not been evaluated yet. We avoid touching approval logic (approved/disapproved).
+            # Get submitted tasks from subordinates - show ALL submitted tasks regardless of evaluation status
+            # A task is considered "submitted" if the employee provided either a file OR text content
+            # We show all submitted tasks to give managers complete visibility
             pending_approvals_qs = subordinate_tasks.select_related('responsible').filter(
+                Q(employee_submitted_at__isnull=False),  # Employee has submitted
                 (
-                    Q(employee_submitted_at__isnull=False)
-                    | Q(file_upload__isnull=False)
-                    | (Q(employee_submission__isnull=False) & ~Q(employee_submission__exact=''))
-                ),
-                evaluation_status='pending'
+                    Q(file_upload__isnull=False)  # Has file attachment
+                    | (Q(employee_submission__isnull=False) & ~Q(employee_submission__exact=''))  # OR has text content
+                )
             ).order_by('-employee_submitted_at', '-created_date')
             
             # Paginate pending approvals (3 per page)
@@ -2884,7 +2883,12 @@ class UploadTaskFileView(LoginRequiredMixin, View):
                 context = {'task': task}
                 return render(request, 'core/upload_task_file.html', context)
             task.file_upload = uploaded_file
-            task.save()
+            try:
+                task.employee_submitted_at = timezone.now()
+                update_fields = ['file_upload', 'employee_submitted_at']
+            except Exception:
+                update_fields = ['file_upload']
+            task.save(update_fields=update_fields)
             if user.under_supervision:
                 Notification.objects.create(
                     recipient=user.under_supervision,

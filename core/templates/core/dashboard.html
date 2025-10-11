@@ -618,6 +618,27 @@
                   <div>
                     <strong>{{ task.issue_action|truncatechars:30 }}</strong><br>
                     <small class="text-muted">{{ task.responsible.get_full_name }}</small>
+                    <div class="mt-1">
+                      {% if task.file_upload %}
+                        <span class="badge badge-info badge-sm mr-1">
+                          <i class="fa fa-paperclip"></i> File
+                        </span>
+                      {% endif %}
+                      {% if task.employee_submission and task.employee_submission.strip %}
+                        <span class="badge badge-success badge-sm mr-1">
+                          <i class="fa fa-file-text"></i> Text
+                        </span>
+                      {% endif %}
+                      {% if task.evaluation_status == 'pending' %}
+                        <span class="badge badge-warning badge-sm">
+                          <i class="fa fa-clock-o"></i> Pending Review
+                        </span>
+                      {% elif task.evaluation_status == 'evaluated' %}
+                        <span class="badge badge-secondary badge-sm">
+                          <i class="fa fa-check"></i> Evaluated
+                        </span>
+                      {% endif %}
+                    </div>
                   </div>
                   <a href="{% url 'core:task-detail' task.id %}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
                     Review
@@ -627,6 +648,7 @@
             {% empty %}
               <div class="text-center text-muted">
                 <p>No Submitted Tasks</p>
+                <small>Tasks with file attachments or text content will appear here</small>
               </div>
             {% endfor %}
           </div>
