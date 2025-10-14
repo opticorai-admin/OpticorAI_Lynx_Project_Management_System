@@ -34,7 +34,8 @@
     "login": "Login",
     "logout": "Logout",
     "profile": "Profile",
-    "tasks_label": "Tasks"
+    "tasks_label": "Tasks",
+    "My Notes":"My Notes"
   },
   "breadcrumb": {
     "home": "Home",

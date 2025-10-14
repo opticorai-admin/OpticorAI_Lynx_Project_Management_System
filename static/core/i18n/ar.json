@@ -34,7 +34,8 @@
     "login": "تسجيل الدخول",
     "logout": "تسجيل الخروج",
     "profile": "الملف الشخصي",
-    "tasks_label": "المهام"
+    "tasks_label": "المهام",
+    "My Notes":"ملاحظاتي"
   },
   "breadcrumb": {
     "home": "الصفحة الرئيسية",

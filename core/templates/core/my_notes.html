@@ -69,7 +69,7 @@
                         </div>
                     </form>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mt-2 mt-md-0">
                     <div class="btn-group float-right" role="group">
                         <a href="{% url 'core:my-notes' %}" 
                            class="btn btn-sm btn-outline-secondary {% if filter_type == 'all' %}active{% endif %}">
@@ -120,7 +120,7 @@
                                     </button>
                                 </form>
                             </td>
-                            <td>
+                            <td data-i18n-skip>
                                 <a href="{% url 'core:note-detail' note.id %}" class="text-dark font-weight-bold">
                                     {{ note.title|truncatechars:60 }}
                                 </a>
@@ -131,12 +131,12 @@
                                     </small>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-i18n-skip>
                                 <span class="badge badge-info">{{ note.assigned_to.get_full_name }}</span>
                                 <br>
                                 <small class="text-muted">{{ note.assigned_to.username }}</small>
                             </td>
-                            <td>
+                            <td data-i18n-skip>
                                 <span class="badge badge-secondary">{{ note.created_by.get_full_name }}</span>
                                 <br>
                                 <small class="text-muted">{{ note.created_by.username }}</small>
