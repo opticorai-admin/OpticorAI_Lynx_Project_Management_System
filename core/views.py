@@ -4447,7 +4447,60 @@ class CreateNoteView(LoginRequiredMixin, View):
                     link=f"/my-notes/{note.id}/"
                 )
             
-            messages.success(request, 'Note created successfully!')
+            # Handle pending reminder data
+            pending_reminder_data = request.POST.get('pending_reminder_data')
+            if pending_reminder_data:
+                try:
+                    import json
+                    from datetime import date
+                    from core.models import NoteReminder, Notification
+                    from core.forms import NoteReminderForm
+                    
+                    reminder_data = json.loads(pending_reminder_data)
+                    
+                    # Create the reminder
+                    reminder_form_data = {
+                        'scheduled_for': reminder_data['scheduled_for'],
+                        'recipient': reminder_data['recipient'],
+                        'message': reminder_data.get('message', '')
+                    }
+                    
+                    reminder_form = NoteReminderForm(reminder_form_data, user=user, note=note)
+                    if reminder_form.is_valid():
+                        reminder = reminder_form.save()
+                        
+                        # Check if the reminder is scheduled for today
+                        today = date.today()
+                        if reminder.scheduled_for == today:
+                            # Send immediate email notification
+                            recipient = reminder.recipient
+                            if recipient and recipient.email:
+                                message = reminder.message or f"Reminder: Note '{note.title}'"
+                                try:
+                                    # Create notification (this triggers the email signal)
+                                    notification = Notification.objects.create(
+                                        recipient=recipient,
+                                        sender=user,
+                                        message=message,
+                                        link=f"/my-notes/{note.id}/",
+                                    )
+                                    # Mark reminder as sent immediately
+                                    reminder.mark_sent()
+                                    messages.success(request, f'Note created successfully! Reminder sent immediately to {recipient.get_full_name()} ({recipient.email}).')
+                                except Exception as e:
+                                    messages.success(request, f'Note created successfully! Reminder scheduled but email could not be sent. Error: {str(e)[:100]}')
+                            else:
+                                messages.success(request, f'Note created successfully! Reminder scheduled but {recipient.get_full_name() if recipient else "recipient"} has no email address.')
+                        else:
+                            messages.success(request, f'Note created successfully! Reminder scheduled for {reminder.scheduled_for}.')
+                    else:
+                        messages.success(request, 'Note created successfully! However, there was an issue with the reminder data.')
+                        
+                except (json.JSONDecodeError, KeyError, Exception) as e:
+                    messages.success(request, 'Note created successfully! However, there was an issue processing the reminder data.')
+            else:
+                messages.success(request, 'Note created successfully!')
+            
             return redirect('core:my-notes')
         
         context = {'form': form, 'action': 'create'}
