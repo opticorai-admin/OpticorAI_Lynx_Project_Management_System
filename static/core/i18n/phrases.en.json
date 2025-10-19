@@ -530,7 +530,8 @@
   "Add Email Reminder":"Add Email Reminder",
   "Select today's date to send email immediately.":"Select today's date to send email immediately.",
   "Back to Note":"Back to Note",
-  "No tasks found for this employee.":"No tasks found for this employee."
+  "No tasks found for this employee.":"No tasks found for this employee.",
+  "Reminder will be created when you save the note.":"Reminder will be created when you save the note."
   
 }
 

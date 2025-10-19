@@ -530,7 +530,8 @@
   "Add Email Reminder":"إضافة إشعار بريدي",
   "Select today's date to send email immediately.":"اختر تاريخ اليوم لإرسال البريد الإلكتروني على الفور إلى",
   "Back to Note":"العودة إلى الملاحظة",
-  "No tasks found for this employee.":"لا يوجد مهام لهذا الموظف."
+  "No tasks found for this employee.":"لا يوجد مهام لهذا الموظف.",
+  "Reminder will be created when you save the note.":"سيتم إنشاء الإشعار عند حفظ الملاحظة."
   
 }
 
