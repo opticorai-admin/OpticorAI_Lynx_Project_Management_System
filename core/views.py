@@ -4462,7 +4462,8 @@ class CreateNoteView(LoginRequiredMixin, View):
                     reminder_form_data = {
                         'scheduled_for': reminder_data['scheduled_for'],
                         'recipient': reminder_data['recipient'],
-                        'message': reminder_data.get('message', '')
+                        'message': reminder_data.get('message', ''),
+                        'repeat_interval': reminder_data.get('repeat_interval', 'none')
                     }
                     
                     reminder_form = NoteReminderForm(reminder_form_data, user=user, note=note)

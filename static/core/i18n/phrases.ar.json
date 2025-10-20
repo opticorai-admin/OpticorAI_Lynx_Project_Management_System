@@ -531,7 +531,12 @@
   "Select today's date to send email immediately.":"اختر تاريخ اليوم لإرسال البريد الإلكتروني على الفور إلى",
   "Back to Note":"العودة إلى الملاحظة",
   "No tasks found for this employee.":"لا يوجد مهام لهذا الموظف.",
-  "Reminder will be created when you save the note.":"سيتم إنشاء الإشعار عند حفظ الملاحظة."
+  "Reminder will be created when you save the note.":"سيتم إنشاء الإشعار عند حفظ الملاحظة.",
+  "Repeat":"تكرار",
+  "If set, the next reminder is auto-created after sending.":"إذا تم تعيينه، فسيتم إنشاء الإشعار التالي تلقائيا بعد الإرسال.",
+  "Scheduled Date":"تاريخ الجدولة",
+  "Recipient":"المستلم",
+  "Repeats":"تكرار"
   
 }
 

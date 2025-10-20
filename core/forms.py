@@ -1264,10 +1264,21 @@ class NoteReminderForm(forms.ModelForm):
         required=False,
         label="Message (Optional)"
     )
+    repeat_interval = forms.ChoiceField(
+        choices=[
+            ('none', 'Does not repeat'),
+            ('weekly', 'Every week'),
+            ('monthly', 'Every month'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Repeat",
+        initial='none',
+        help_text="Create next reminder automatically after sending"
+    )
 
     class Meta:
         model = NoteReminder
-        fields = ['scheduled_for', 'recipient', 'message']
+        fields = ['scheduled_for', 'recipient', 'message', 'repeat_interval']
 
     def __init__(self, *args, **kwargs):
         self.note = kwargs.pop('note', None)

@@ -531,8 +531,11 @@
   "Select today's date to send email immediately.":"Select today's date to send email immediately.",
   "Back to Note":"Back to Note",
   "No tasks found for this employee.":"No tasks found for this employee.",
-  "Reminder will be created when you save the note.":"Reminder will be created when you save the note."
-  
+  "Reminder will be created when you save the note.":"Reminder will be created when you save the note.",
+  "Repeat":"Repeat",
+  "If set, the next reminder is auto-created after sending.":"If set, the next reminder is auto-created after sending.",
+  "Scheduled Date":"Scheduled Date",
+  "Recipient":"Recipient",
+  "Repeats":"Repeats"
 }
-
 

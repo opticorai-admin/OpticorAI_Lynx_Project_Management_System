@@ -127,22 +127,27 @@
                                         {% for reminder in reminders %}
                                         <tr {% if reminder.sent_at %}class="table-success"{% endif %}>
                                             <td>{{ reminder.scheduled_for|date:"M d, Y" }}</td>
-                                            <td>
+                                            <td data-i18n-skip>
                                                 <span class="badge badge-info">{{ reminder.recipient.get_full_name }}</span>
                                             </td>
-                                            <td>{{ reminder.message|default:"(No message)"|truncatechars:50 }}</td>
-                                            <td>
+                                            <td data-i18n-skip>
+                                                {{ reminder.message|default:"(No message)"|truncatechars:50 }}
+                                                {% if reminder.repeat_interval != 'none' %}
+                                                    <br><small class="text-muted">Repeats: {{ reminder.repeat_interval|title }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td data-i18n-skip>
                                                 <small>{{ reminder.created_by.get_full_name|default:"System" }}</small>
                                             </td>
                                             <td>
                                                 {% if reminder.sent_at %}
-                                                    <span class="badge badge-success">
+                                                    <span class="badge badge-success" data-i18n-skip>
                                                         <i class="fa fa-check"></i> Sent
                                                     </span>
                                                     <br>
                                                     <small class="text-muted">{{ reminder.sent_at|date:"M d, Y h:i A" }}</small>
                                                 {% else %}
-                                                    <span class="badge badge-warning">
+                                                    <span class="badge badge-warning" data-i18n-skip>
                                                         <i class="fa fa-clock-o"></i> Pending
                                                     </span>
                                                 {% endif %}
@@ -241,6 +246,15 @@
                         <label for="message">Message (Optional)</label>
                         <textarea class="form-control" id="message" name="message" rows="3" 
                                   placeholder="Optional reminder message"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="repeat_interval">Repeat</label>
+                        <select class="form-control" id="repeat_interval" name="repeat_interval" data-i18n-skip>
+                            <option value="none" selected>Does not repeat</option>
+                            <option value="weekly">Every week</option>
+                            <option value="monthly">Every month</option>
+                        </select>
+                        <small class="form-text text-muted">If set, the next reminder is auto-created after sending.</small>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -1204,6 +1204,18 @@ class NoteReminder(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+    repeat_interval = models.CharField(
+        max_length=10,
+        choices=[
+            ('none', 'Does not repeat'),
+            ('weekly', 'Every week'),
+            ('monthly', 'Every month'),
+        ],
+        default='none',
+        db_index=True,
+        verbose_name="Repeat",
+        help_text="Automatically create the next reminder after sending"
+    )
 
     class Meta:
         ordering = ['-scheduled_for', '-created_at']
