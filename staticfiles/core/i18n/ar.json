@@ -29,12 +29,15 @@
     "manage_priority_types": "إدارة أنواع الأولوية",
     "evaluation_settings": "إعدادات التقييم",
     "extras": "إضافات",
+    "ai_features": "ميزات الذكاء الاصطناعي",
+    "ai_chatbot": "الدردشة الذكاء الاصطناعي",
     "pages": "صفحات",
     "languages": "اللغات",
     "login": "تسجيل الدخول",
     "logout": "تسجيل الخروج",
     "profile": "الملف الشخصي",
-    "tasks_label": "المهام"
+    "tasks_label": "المهام",
+    "My Notes":"ملاحظاتي"
   },
   "breadcrumb": {
     "home": "الصفحة الرئيسية",

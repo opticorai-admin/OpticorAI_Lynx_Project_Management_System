@@ -1,4 +1,4 @@
-from core.models import CustomUser, Task, KPI, QualityType, Notification, TaskEvaluationSettings, TaskPriorityType, EmployeeProgress, Note, NoteReminder
+from core.models import CustomUser, Task, KPI, QualityType, Notification, TaskEvaluationSettings, TaskPriorityType, EmployeeProgress, Note, NoteReminder, ChatBot, ChatMessage
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
@@ -227,3 +227,51 @@ class NoteReminderAdmin(admin.ModelAdmin):
 
 admin.site.register(Note, NoteAdmin)
 admin.site.register(NoteReminder, NoteReminderAdmin)
+
+class ChatBotAdmin(admin.ModelAdmin):
+    list_display = ['session_name', 'user', 'is_active', 'created_at', 'updated_at', 'get_messages_count']
+    list_filter = ['is_active', 'created_at', 'updated_at', 'user__user_type']
+    search_fields = ['session_name', 'user__username', 'user__first_name', 'user__last_name']
+    readonly_fields = ['created_at', 'updated_at']
+    list_editable = ['is_active']
+    date_hierarchy = 'created_at'
+    list_select_related = ('user',)
+    
+    fieldsets = (
+        ('Session Information', {
+            'fields': ('user', 'session_name', 'is_active')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ['chat_session', 'message_type', 'content_preview', 'tokens_used', 'timestamp']
+    list_filter = ['message_type', 'timestamp', 'chat_session__user']
+    search_fields = ['content', 'chat_session__session_name', 'chat_session__user__username']
+    readonly_fields = ['timestamp']
+    date_hierarchy = 'timestamp'
+    list_select_related = ('chat_session', 'chat_session__user')
+    
+    def content_preview(self, obj):
+        return obj.content[:100] + "..." if len(obj.content) > 100 else obj.content
+    content_preview.short_description = 'Content Preview'
+    
+    fieldsets = (
+        ('Message Information', {
+            'fields': ('chat_session', 'message_type', 'content')
+        }),
+        ('API Data', {
+            'fields': ('tokens_used',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamp', {
+            'fields': ('timestamp',),
+            'classes': ('collapse',)
+        }),
+    )
+
+admin.site.register(ChatBot, ChatBotAdmin)
+admin.site.register(ChatMessage, ChatMessageAdmin)

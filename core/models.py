@@ -1170,10 +1170,77 @@ class Note(models.Model):
         # Only the creator can edit the note
         return user == self.created_by
 
-    def can_user_delete(self, user):
-        """Check if user can delete this note"""
-        # Only the creator can delete the note
-        return user == self.created_by
+
+class ChatBot(models.Model):
+    """
+    ChatBot model for storing chat conversations and history.
+    Each user can have multiple chat sessions.
+    """
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='chat_sessions',
+        verbose_name="User"
+    )
+    session_name = models.CharField(
+        max_length=200,
+        default="New Chat",
+        verbose_name="Session Name"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user', '-updated_at'], name='chatbot_user_updated_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.session_name} - {self.user.get_full_name()}"
+
+    def get_messages_count(self):
+        """Get the number of messages in this chat session"""
+        return self.messages.count()
+
+
+class ChatMessage(models.Model):
+    """
+    Individual messages within a chat session.
+    """
+    MESSAGE_TYPE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    ]
+
+    chat_session = models.ForeignKey(
+        ChatBot,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        verbose_name="Chat Session"
+    )
+    message_type = models.CharField(
+        max_length=10,
+        choices=MESSAGE_TYPE_CHOICES,
+        verbose_name="Message Type"
+    )
+    content = models.TextField(verbose_name="Message Content")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    tokens_used = models.IntegerField(
+        default=0,
+        verbose_name="Tokens Used",
+        help_text="Number of tokens used for this message (for API cost tracking)"
+    )
+
+    class Meta:
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['chat_session', 'timestamp'], name='chatmsg_session_time_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.message_type}: {self.content[:50]}..."
 
 
 class NoteReminder(models.Model):

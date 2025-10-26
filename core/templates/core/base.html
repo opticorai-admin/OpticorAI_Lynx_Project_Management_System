@@ -183,6 +183,8 @@
             </a>
           </li>
           {% endif %}
+          
+          
           {% if user.user_type == 'admin' %}
           <li class="nav-item nav-dropdown">
             <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-user"></i> <span data-i18n="nav.users">Users</span></a>
@@ -193,12 +195,14 @@
             </ul>
           </li>
           {% endif %}
-          
-          {% if user.user_type == 'manager' %}
+          {% if user.user_type != 'admin' %}
           <li class="divider"></li>
           <li class="nav-title">
             <span data-i18n="nav.settings">Settings</span>
           </li>
+          {% endif %}
+          {% if user.user_type == 'manager' %}
+          
           <li class="nav-item nav-dropdown">
             <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> <span data-i18n="nav.management">Management</span></a>
             <ul class="nav-dropdown-items">
@@ -227,7 +231,7 @@
             <span data-i18n="nav.admin_settings">Admin Settings</span>
           </li>
           <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> <span data-i18n="nav.system_management">System Management</span></a>
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-cog"></i> <span data-i18n="nav.management">Management</span></a>
             <ul class="nav-dropdown-items">
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'core:qualitytype-list' %}"><i class="fa fa-star ml-2"></i> <span data-i18n="nav.manage_quality_types">Manage Quality Types</span></a>
@@ -241,20 +245,6 @@
             </ul>
           </li>
           {% endif %}
-          <li class="nav-title">
-            <span data-i18n="nav.extras">Extras</span>
-          </li>
-          <li class="nav-item nav-dropdown">
-            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-star"></i> <span data-i18n="nav.pages">Pages</span></a>
-            <ul class="nav-dropdown-items">
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-in ml-2"></i> <span data-i18n="nav.login">Login</span></a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-out ml-2"></i> <span data-i18n="nav.logout">Logout</span></a>
-              </li>
-            </ul>
-          </li>
           <!-- Languages selector (frontend only) -->
           <li class="nav-item nav-dropdown">
             <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-globe"></i> <span data-i18n="nav.languages">Languages</span></a>
@@ -267,6 +257,35 @@
               </li>
             </ul>
           </li>
+          
+          
+          <li class="nav-title">
+            <span data-i18n="nav.extras">Extras</span>
+          </li>
+          <!-- AI Features - Available to all users -->
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-robot"></i> <span data-i18n="nav.ai_features">AI Features</span></a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:chatbot' %}">
+                  <i class="fa fa-comments ml-2"></i> <span data-i18n="nav.ai_chatbot">AI Chatbot</span>
+                </a>
+              </li>
+            </ul>
+          </li>
+          
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-star"></i> <span data-i18n="nav.pages">Pages</span></a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-in ml-2"></i> <span data-i18n="nav.login">Login</span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'core:logout' %}" target="_top"><i class="fa fa-sign-out ml-2"></i> <span data-i18n="nav.logout">Logout</span></a>
+              </li>
+            </ul>
+          </li>
+          
         </ul>
       </nav>
       

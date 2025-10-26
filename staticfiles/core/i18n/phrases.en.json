@@ -536,7 +536,9 @@
   "If set, the next reminder is auto-created after sending.":"If set, the next reminder is auto-created after sending.",
   "Scheduled Date":"Scheduled Date",
   "Recipient":"Recipient",
-  "Repeats":"Repeats"
+  "Repeats":"Repeats",
+  "AI Features":"AI Features",
+  "AI Chatbot":"AI Chatbot"
   
 }
 

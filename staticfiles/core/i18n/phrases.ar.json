@@ -536,7 +536,9 @@
   "If set, the next reminder is auto-created after sending.":"إذا تم تعيينه، فسيتم إنشاء الإشعار التالي تلقائيا بعد الإرسال.",
   "Scheduled Date":"تاريخ الجدولة",
   "Recipient":"المستلم",
-  "Repeats":"تكرار"
+  "Repeats":"تكرار",
+  "AI Features":"ميزات الذكاء الاصطناعي",
+  "AI Chatbot":"الدردشة الذكية"
   
 }
 

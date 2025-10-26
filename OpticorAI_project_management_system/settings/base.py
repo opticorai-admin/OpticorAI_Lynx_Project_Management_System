@@ -98,7 +98,7 @@ LANGUAGE_COOKIE_NAME = 'django_language'
 
 # Business-local timezone for date-based business rules (e.g., task due checks)
 # Example: 'Asia/Muscat' or leave unset to use default local timezone
-BUSINESS_TIMEZONE = os.environ.get('BUSINESS_TIMEZONE', '') or None
+BUSINESS_TIMEZONE = os.environ.get('BUSINESS_TIMEZONE', 'Asia/Muscat') or 'Asia/Muscat'
 
 # Static/media
 STATIC_URL = '/static/'
@@ -132,5 +132,14 @@ AUTHENTICATION_BACKENDS = [
 
 # Security: Email-based 2FA (can be disabled via env)
 ENABLE_EMAIL_2FA = os.environ.get('ENABLE_EMAIL_2FA', 'true').lower() == 'true'
+
+# AI Chatbot Configuration
+# OpenRouter API settings for DeepSeek R1 (free model)
+OPENROUTER_API_KEY = env_config('OPENROUTER_API_KEY', default=None)
+OPENROUTER_SITE_URL = env_config('OPENROUTER_SITE_URL', default='https://opticorai-lynx-project-management-system.onrender.com')
+OPENROUTER_SITE_NAME = env_config('OPENROUTER_SITE_NAME', default='Lynex Project Management System')
+
+# DeepSeek API key (fallback if OpenRouter not used)
+DEEPSEEK_API_KEY = env_config('DEEPSEEK_API_KEY', default=None)
 
 

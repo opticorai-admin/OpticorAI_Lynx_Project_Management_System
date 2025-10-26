@@ -99,6 +99,13 @@ urlpatterns = [
     
     # --- AJAX Endpoints for My Notes ---
     path('ajax/employee/<int:employee_id>/tasks/', views.GetTasksByEmployeeView.as_view(), name='get-employee-tasks'),
+    
+    # --- AI Chatbot ---
+    path('chatbot/', views.ChatBotView.as_view(), name='chatbot'),
+    path('chatbot/session/create/', views.CreateChatSessionView.as_view(), name='create-chat-session'),
+    path('chatbot/session/<int:session_id>/delete/', views.DeleteChatSessionView.as_view(), name='delete-chat-session'),
+    path('chatbot/session/<int:session_id>/send/', views.SendMessageView.as_view(), name='send-message'),
+    path('chatbot/session/<int:session_id>/history/', views.GetChatHistoryView.as_view(), name='get-chat-history'),
 ]
 
 if settings.DEBUG:

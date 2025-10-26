@@ -28,7 +28,7 @@ from django.db.models import Exists, OuterRef
 from django.core.cache import cache
 from django.db.models import Case, When, IntegerField, Count
 from django.db.models import Count, Case, When, IntegerField
-from .models import CustomUser, Task, KPI, QualityType, Notification, TaskPriorityType, TaskEvaluationSettings, EmployeeProgress
+from .models import CustomUser, Task, KPI, QualityType, Notification, TaskPriorityType, TaskEvaluationSettings, EmployeeProgress, ChatBot, ChatMessage
 from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
 from .forms import (
@@ -4758,3 +4758,290 @@ class GetTasksByEmployeeView(LoginRequiredMixin, View):
             })
         
         return JsonResponse({'tasks': tasks_data})
+
+
+# --- AI Chatbot Views ---
+import requests
+import json
+import os
+from django.conf import settings
+
+class ChatBotView(LoginRequiredMixin, View):
+    """
+    Main chatbot interface view
+    """
+    def get(self, request):
+        user = request.user
+        
+        # Get user's chat sessions
+        chat_sessions = ChatBot.objects.filter(user=user, is_active=True).order_by('-updated_at')
+        
+        # Get the most recent session or create a new one
+        if chat_sessions.exists():
+            current_session = chat_sessions.first()
+        else:
+            current_session = ChatBot.objects.create(
+                user=user,
+                session_name="New Chat"
+            )
+        
+        # Don't load messages by default - let JavaScript handle message loading
+        # This prevents messages from showing at the top when page refreshes or navigating to tab
+        messages = []
+        
+        context = {
+            'chat_sessions': chat_sessions,
+            'current_session': current_session,
+            'messages': messages,
+        }
+        
+        return render(request, 'core/chatbot.html', context)
+
+
+class CreateChatSessionView(LoginRequiredMixin, View):
+    """
+    Create a new chat session
+    """
+    def post(self, request):
+        user = request.user
+        session_name = request.POST.get('session_name', 'New Chat')
+        
+        # Create new session
+        new_session = ChatBot.objects.create(
+            user=user,
+            session_name=session_name
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'session_id': new_session.id,
+            'session_name': new_session.session_name
+        })
+
+
+class DeleteChatSessionView(LoginRequiredMixin, View):
+    """
+    Delete a chat session
+    """
+    def post(self, request, session_id):
+        user = request.user
+        
+        try:
+            session = ChatBot.objects.get(id=session_id, user=user)
+            session.is_active = False
+            session.save()
+            
+            return JsonResponse({'success': True})
+        except ChatBot.DoesNotExist:
+            return JsonResponse({'error': 'Session not found'}, status=404)
+
+
+class SendMessageView(LoginRequiredMixin, View):
+    """
+    Send a message to AI (DeepSeek via OpenRouter or direct DeepSeek API) and get response
+    """
+    def post(self, request, session_id):
+        user = request.user
+        message_content = request.POST.get('message', '').strip()
+        
+        if not message_content:
+            return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+        
+        try:
+            # Get or create session
+            try:
+                session = ChatBot.objects.get(id=session_id, user=user, is_active=True)
+            except ChatBot.DoesNotExist:
+                return JsonResponse({'error': 'Session not found'}, status=404)
+            
+            # Save user message
+            user_message = ChatMessage.objects.create(
+                chat_session=session,
+                message_type='user',
+                content=message_content
+            )
+            
+            # Get API configuration from settings
+            from django.conf import settings
+            
+            # Prepare messages for API
+            messages = []
+            
+            # Get conversation history (last 10 messages to avoid token limits)
+            recent_messages = ChatMessage.objects.filter(
+                chat_session=session
+            ).order_by('-timestamp')[:10]
+            
+            # Reverse to get chronological order
+            for msg in reversed(recent_messages):
+                role = 'user' if msg.message_type == 'user' else 'assistant'
+                messages.append({
+                    'role': role,
+                    'content': msg.content
+                })
+            
+            # Add system message for context
+            system_message = {
+                'role': 'system',
+                'content': f"""You are an AI assistant (powered by DeepSeek) integrated into a project management system called Lynex. 
+                The user {user.get_full_name()} ({user.user_type}) is asking you a question. 
+                Be helpful, professional, and provide accurate information. 
+                If asked about project management, tasks, or work-related topics, provide relevant advice.
+                Keep responses concise but informative."""
+            }
+            messages.insert(0, system_message)
+            
+            # Determine which API to use: OpenRouter (preferred) or DeepSeek direct fallback
+            openrouter_api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
+            deepseek_api_key = getattr(settings, 'DEEPSEEK_API_KEY', None)
+            
+            if openrouter_api_key:
+                # Use OpenRouter API with fallback models (preferred)
+                headers = {
+                    'Authorization': f'Bearer {openrouter_api_key}',
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': getattr(settings, 'OPENROUTER_SITE_URL', 'https://opticorai-lynx-project-management-system.onrender.com'),
+                    'X-Title': getattr(settings, 'OPENROUTER_SITE_NAME', 'Lynex Project Management System'),
+                }
+                
+                # Try multiple models in order of preference
+                models_to_try = [
+                    'meta-llama/llama-3.3-8b-instruct:free',
+                    'mistralai/mistral-7b-instruct:free',
+                    'qwen/qwen3-8b:free',
+                    'deepseek/deepseek-chat-v3.1:free'
+                ]
+                
+                response = None
+                last_error = None
+                
+                for model in models_to_try:
+                    data = {
+                        'model': model,
+                        'messages': messages,
+                        'max_tokens': 1000,
+                        'temperature': 0.7
+                    }
+                    
+                    try:
+                        response = requests.post(
+                            'https://openrouter.ai/api/v1/chat/completions',
+                            headers=headers,
+                            json=data,
+                            timeout=30
+                        )
+                        if response.status_code == 200:
+                            break  # Success, use this model
+                        else:
+                            last_error = f"Model {model} failed with status {response.status_code}"
+                    except Exception as e:
+                        last_error = f"Model {model} failed with exception: {str(e)}"
+                        continue
+                
+                if response is None or response.status_code != 200:
+                    return JsonResponse({'error': f'All OpenRouter models failed. Last error: {last_error}'}, status=500)
+            elif deepseek_api_key:
+                # Use DeepSeek API directly (fallback)
+                headers = {
+                    'Authorization': f'Bearer {deepseek_api_key}',
+                    'Content-Type': 'application/json'
+                }
+                
+                data = {
+                    'model': 'deepseek-chat',
+                    'messages': messages,
+                    'max_tokens': 1000,
+                    'temperature': 0.7
+                }
+                
+                response = requests.post(
+                    'https://api.deepseek.com/v1/chat/completions',
+                    headers=headers,
+                    json=data,
+                    timeout=30
+                )
+            else:
+                return JsonResponse({'error': 'No AI API key configured. Please set OPENROUTER_API_KEY or DEEPSEEK_API_KEY in environment.'}, status=500)
+            
+            if response.status_code == 200:
+                result = response.json()
+                assistant_message = result['choices'][0]['message']['content']
+                tokens_used = result.get('usage', {}).get('total_tokens', 0)
+                
+                # Save assistant response
+                assistant_msg = ChatMessage.objects.create(
+                    chat_session=session,
+                    message_type='assistant',
+                    content=assistant_message,
+                    tokens_used=tokens_used
+                )
+                
+                # Update session timestamp
+                session.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': assistant_message,
+                    'tokens_used': tokens_used
+                })
+            else:
+                error_msg = f"API Error: {response.status_code}"
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        error_msg = error_data['error'].get('message', error_msg)
+                except:
+                    pass
+                
+                return JsonResponse({'error': error_msg}, status=500)
+                
+        except requests.exceptions.Timeout:
+            return JsonResponse({'error': 'Request timeout. Please try again.'}, status=500)
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({'error': f'Network error: {str(e)}'}, status=500)
+        except Exception as e:
+            return JsonResponse({'error': f'Unexpected error: {str(e)}'}, status=500)
+
+
+class GetChatHistoryView(LoginRequiredMixin, View):
+    """
+    Get chat history for a specific session
+    """
+    def get(self, request, session_id):
+        user = request.user
+        
+        try:
+            session = ChatBot.objects.get(id=session_id, user=user, is_active=True)
+            messages = ChatMessage.objects.filter(chat_session=session).order_by('timestamp')
+            
+            messages_data = []
+            for msg in messages:
+                # Convert timestamp to Muscat timezone for consistent display
+                from django.utils import timezone
+                from zoneinfo import ZoneInfo
+                
+                # Get Muscat timezone
+                muscat_tz = ZoneInfo('Asia/Muscat')
+                
+                # Convert UTC timestamp to Muscat time
+                if timezone.is_aware(msg.timestamp):
+                    muscat_time = msg.timestamp.astimezone(muscat_tz)
+                else:
+                    muscat_time = timezone.make_aware(msg.timestamp, timezone.utc).astimezone(muscat_tz)
+                
+                messages_data.append({
+                    'id': msg.id,
+                    'type': msg.message_type,
+                    'content': msg.content,
+                    'timestamp': muscat_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'tokens_used': msg.tokens_used
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'session_name': session.session_name,
+                'messages': messages_data
+            })
+            
+        except ChatBot.DoesNotExist:
+            return JsonResponse({'error': 'Session not found'}, status=404)
