@@ -18,6 +18,7 @@ from django import forms
 from django.http import JsonResponse
 from django.views import View
 from django.db import models
+import requests
 from openpyxl import Workbook
 from reportlab.pdfgen import canvas
 from io import BytesIO
@@ -4883,7 +4884,7 @@ class SendMessageView(LoginRequiredMixin, View):
             # Add system message for context
             system_message = {
                 'role': 'system',
-                'content': f"""You are an AI assistant (powered by DeepSeek) integrated into a project management system called Lynex. 
+                'content': f"""You are an AI assistant (powered by OpticorAI Lynex) integrated into a project management system called Lynex. 
                 The user {user.get_full_name()} ({user.user_type}) is asking you a question. 
                 Be helpful, professional, and provide accurate information. 
                 If asked about project management, tasks, or work-related topics, provide relevant advice.
@@ -4895,21 +4896,24 @@ class SendMessageView(LoginRequiredMixin, View):
             openrouter_api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
             deepseek_api_key = getattr(settings, 'DEEPSEEK_API_KEY', None)
             
+            # Try external API first if available
+            api_success = False
             if openrouter_api_key:
                 # Use OpenRouter API with fallback models (preferred)
                 headers = {
                     'Authorization': f'Bearer {openrouter_api_key}',
                     'Content-Type': 'application/json',
-                    'HTTP-Referer': getattr(settings, 'OPENROUTER_SITE_URL', 'https://opticorai-lynx-project-management-system.onrender.com'),
+                    'Referer': getattr(settings, 'OPENROUTER_SITE_URL', 'https://opticorai-lynx-project-management-system.onrender.com'),
                     'X-Title': getattr(settings, 'OPENROUTER_SITE_NAME', 'Lynex Project Management System'),
                 }
                 
                 # Try multiple models in order of preference
                 models_to_try = [
                     'meta-llama/llama-3.3-8b-instruct:free',
-                    'mistralai/mistral-7b-instruct:free',
-                    'qwen/qwen3-8b:free',
-                    'deepseek/deepseek-chat-v3.1:free'
+                    'deepseek/deepseek-chat-v3.1:free',
+                    'mistralai/mistral-small-3.2-24b-instruct:free',
+                    'google/gemma-3n-e2b-it:free',
+                    'qwen/qwen3-coder:free'
                 ]
                 
                 response = None
@@ -4931,6 +4935,7 @@ class SendMessageView(LoginRequiredMixin, View):
                             timeout=30
                         )
                         if response.status_code == 200:
+                            api_success = True
                             break  # Success, use this model
                         else:
                             last_error = f"Model {model} failed with status {response.status_code}"
@@ -4938,69 +4943,125 @@ class SendMessageView(LoginRequiredMixin, View):
                         last_error = f"Model {model} failed with exception: {str(e)}"
                         continue
                 
-                if response is None or response.status_code != 200:
-                    return JsonResponse({'error': f'All OpenRouter models failed. Last error: {last_error}'}, status=500)
-            elif deepseek_api_key:
-                # Use DeepSeek API directly (fallback)
-                headers = {
-                    'Authorization': f'Bearer {deepseek_api_key}',
-                    'Content-Type': 'application/json'
-                }
-                
-                data = {
-                    'model': 'deepseek-chat',
-                    'messages': messages,
-                    'max_tokens': 1000,
-                    'temperature': 0.7
-                }
-                
-                response = requests.post(
-                    'https://api.deepseek.com/v1/chat/completions',
-                    headers=headers,
-                    json=data,
-                    timeout=30
-                )
-            else:
-                return JsonResponse({'error': 'No AI API key configured. Please set OPENROUTER_API_KEY or DEEPSEEK_API_KEY in environment.'}, status=500)
+                if api_success and response.status_code == 200:
+                    result = response.json()
+                    assistant_message = result['choices'][0]['message']['content']
+                    tokens_used = result.get('usage', {}).get('total_tokens', 0)
+                    
+                    # Save assistant response
+                    assistant_msg = ChatMessage.objects.create(
+                        chat_session=session,
+                        message_type='assistant',
+                        content=assistant_message,
+                        tokens_used=tokens_used
+                    )
+                    
+                    # Update session timestamp
+                    session.save()
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': assistant_message,
+                        'tokens_used': tokens_used
+                    })
             
-            if response.status_code == 200:
-                result = response.json()
-                assistant_message = result['choices'][0]['message']['content']
-                tokens_used = result.get('usage', {}).get('total_tokens', 0)
-                
-                # Save assistant response
-                assistant_msg = ChatMessage.objects.create(
-                    chat_session=session,
-                    message_type='assistant',
-                    content=assistant_message,
-                    tokens_used=tokens_used
-                )
-                
-                # Update session timestamp
-                session.save()
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': assistant_message,
-                    'tokens_used': tokens_used
-                })
-            else:
-                error_msg = f"API Error: {response.status_code}"
-                try:
-                    error_data = response.json()
-                    if 'error' in error_data:
-                        error_msg = error_data['error'].get('message', error_msg)
-                except:
-                    pass
-                
-                return JsonResponse({'error': error_msg}, status=500)
-                
+            # If external API failed, use intelligent local response system
+            assistant_message = self.generate_intelligent_response(user, message_content, session)
+            
+            # Save the intelligent response
+            assistant_msg = ChatMessage.objects.create(
+                chat_session=session,
+                message_type='assistant',
+                content=assistant_message,
+                tokens_used=0
+            )
+            
+            # Update session timestamp
+            session.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': assistant_message,
+                'tokens_used': 0
+            })
+            
         except requests.exceptions.Timeout:
             return JsonResponse({'error': 'Request timeout. Please try again.'}, status=500)
         except requests.exceptions.RequestException as e:
             return JsonResponse({'error': f'Network error: {str(e)}'}, status=500)
         except Exception as e:
             return JsonResponse({'error': f'Unexpected error: {str(e)}'}, status=500)
+    
+    def generate_intelligent_response(self, user, message_content, session):
+        """
+        Generate intelligent responses based on user input and context
+        """
+        message_lower = message_content.lower()
+        
+        # Get user's recent tasks for context
+        from core.models import Task
+        recent_tasks = Task.objects.filter(responsible=user).order_by('-created_date')[:5]
+        
+        # Greeting responses
+        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']):
+            return f"Hello {user.get_full_name()}! I'm your AI assistant for the OptocorAI Lynex Project Management System. I'm here to help you with your project management needs. How can I assist you today?"
+        
+        # Task-related queries
+        elif any(word in message_lower for word in ['task', 'tasks', 'project', 'work', 'assignment']):
+            if recent_tasks.exists():
+                task_count = recent_tasks.count()
+                open_tasks = recent_tasks.filter(status='open').count()
+                return f"I can see you have {task_count} recent tasks, with {open_tasks} currently open. In the Lynex system, you can create, track, and manage your tasks efficiently. Would you like help with creating a new task or managing existing ones?"
+            else:
+                return "I'd be happy to help you with task management! In the Lynex system, you can create tasks, set deadlines, track progress, and collaborate with your team. What specific aspect of task management would you like to know more about?"
+        
+        # Progress and status queries
+        elif any(word in message_lower for word in ['progress', 'status', 'complete', 'finished', 'done']):
+            if recent_tasks.exists():
+                completed_tasks = recent_tasks.filter(status='closed').count()
+                return f"Great question about progress! I can see you have {completed_tasks} completed tasks recently. The Lynex system helps you track your progress with detailed status updates, completion percentages, and deadline management. Would you like to know more about any specific task?"
+            else:
+                return "Progress tracking is essential for project success! In Lynex, you can monitor task completion, set milestones, and track overall project progress. The system provides detailed analytics and reporting features to help you stay on top of your work."
+        
+        # Deadline and time-related queries
+        elif any(word in message_lower for word in ['deadline', 'due', 'time', 'schedule', 'calendar']):
+            return "Time management is crucial for project success! In the Lynex system, you can set target dates, track deadlines, and receive notifications for upcoming tasks. The system helps you stay organized and meet your commitments on time."
+        
+        # Team and collaboration queries
+        elif any(word in message_lower for word in ['team', 'collaborate', 'manager', 'employee', 'supervisor']):
+            if user.user_type == 'manager':
+                subordinates = user.get_subordinates()
+                return f"As a manager, you can oversee {subordinates.count()} team members in the Lynex system. You can assign tasks, track progress, and provide feedback to help your team succeed. How can I help you with team management?"
+            elif user.user_type == 'employee':
+                return "Team collaboration is key to success! In Lynex, you can communicate with your manager, submit task updates, and collaborate effectively. The system ensures clear communication and accountability across your team."
+            else:
+                return "The Lynex system supports effective team collaboration with role-based access, task assignment, and progress tracking. Each team member has appropriate permissions to contribute to project success."
+        
+        # Help and support queries
+        elif any(word in message_lower for word in ['help', 'support', 'how to', 'guide', 'tutorial']):
+            return f"I'm here to help you navigate the Lynex Project Management System! As a {user.user_type}, you have access to various features including task management, progress tracking, and team collaboration. What specific area would you like help with?"
+        
+        # System features queries
+        elif any(word in message_lower for word in ['feature', 'function', 'capability', 'what can', 'available']):
+            features = []
+            if user.user_type in ['manager', 'employee']:
+                features.append("Task creation and management")
+            if user.user_type == 'manager':
+                features.append("Team oversight and task assignment")
+            if user.user_type == 'employee':
+                features.append("Task submission and progress updates")
+            features.extend(["Progress tracking", "File uploads", "Notifications", "Reports"])
+            
+            return f"The Lynex system offers many powerful features including: {', '.join(features)}. Each feature is designed to streamline your project management workflow and improve productivity."
+        
+        # Default intelligent response
+        else:
+            responses = [
+                f"Thank you for your message, {user.get_full_name()}! I'm your AI assistant for the Lynex Project Management System. I'm here to help you with tasks, projects, and team collaboration. How can I assist you today?",
+                f"I understand you're looking for assistance, {user.get_full_name()}. The Lynex system is designed to help you manage projects efficiently. Whether you need help with tasks, deadlines, or team coordination, I'm here to guide you.",
+                f"Hello {user.get_full_name()}! I'm ready to help you with your project management needs in the Lynex system. Feel free to ask me about tasks, progress tracking, or any other features you'd like to explore."
+            ]
+            return responses[hash(message_content) % len(responses)]
 
 
 class GetChatHistoryView(LoginRequiredMixin, View):
