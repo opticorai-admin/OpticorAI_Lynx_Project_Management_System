@@ -1170,6 +1170,16 @@ class Note(models.Model):
         # Only the creator can edit the note
         return user == self.created_by
 
+    def can_user_delete(self, user):
+        """Check if user can delete this note"""
+        if user == self.created_by:
+            return True
+        if getattr(user, 'is_superuser', False):
+            return True
+        if getattr(user, 'user_type', None) == 'admin':
+            return True
+        return False
+
 
 class ChatBot(models.Model):
     """

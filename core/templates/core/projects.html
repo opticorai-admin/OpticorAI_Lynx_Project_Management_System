@@ -141,10 +141,26 @@
                     <button type="submit" class="btn btn-primary w-100"><i class="fa fa-search"></i> Filter</button>
                 </div>
             </form>
+            {% if user.user_type == 'manager' and not is_my_tasks %}
+            <form method="post" action="{% url 'core:tasks-bulk-delete' %}" id="tasks-bulk-delete-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="d-flex justify-content-end mb-2">
+                    <button type="submit" class="btn btn-danger btn-sm" id="bulk-delete-button">
+                        <i class="fa fa-trash"></i> Delete Selected
+                    </button>
+                </div>
+            {% endif %}
             <div class="table-responsive table-responsive-sm">
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            {% if user.user_type == 'manager' and not is_my_tasks %}
+                            <th>
+                                <!-- <input type="checkbox" id="select-all-tasks"> -->
+                            </th>
+                            {% endif %}
+                            
                             <th class="text-nowrap" style="min-width:140px;">Issue/Action</th>
                             <th class="text-nowrap" style="min-width:110px;">Responsible</th>
                             <th class="text-nowrap d-none d-sm-table-cell" style="min-width:90px;">Priority</th>
@@ -158,6 +174,15 @@
                     <tbody>
                         {% for task in tasks %}
                         <tr>
+                            {% if user.user_type == 'manager' and not is_my_tasks %}
+                            <td class="text-center align-middle">
+                                {% if task|can_user_edit:user %}
+                                <input type="checkbox" class="task-select-checkbox" name="task_ids" value="{{ task.id }}" form="tasks-bulk-delete-form">
+                                {% else %}
+                                <i class="fa fa-lock text-muted" title="You cannot delete this task"></i>
+                                {% endif %}
+                            </td>
+                            {% endif %}
                             <td class="text-nowrap" style="min-width:140px;">
                                 <a href="{% url 'core:task-detail' task.id %}" target="_blank" rel="noopener noreferrer" class="text-dark" style="text-decoration: none;">
                                     <strong data-i18n-skip>{{ task.issue_action|truncatechars:40 }}</strong>
@@ -224,7 +249,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted">
+                            <td colspan="{% if user.user_type == 'manager' and not is_my_tasks %}9{% else %}8{% endif %}" class="text-center text-muted">
                                 No tasks found.
                             </td>
                         </tr>
@@ -232,6 +257,9 @@
                     </tbody>
                 </table>
             </div>
+            {% if user.user_type == 'manager' and not is_my_tasks %}
+            </form>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -433,5 +461,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const width = bar.getAttribute('data-width');
         bar.style.width = width + '%';
     });
+
+    const selectAllCheckbox = document.getElementById('select-all-tasks');
+    const taskCheckboxes = Array.from(document.querySelectorAll('.task-select-checkbox'));
+    const bulkDeleteButton = document.getElementById('bulk-delete-button');
+    const bulkDeleteForm = document.getElementById('tasks-bulk-delete-form');
+
+    if (bulkDeleteButton) {
+        // Disable by default when JS is enabled; backend still guards against empty submissions
+        bulkDeleteButton.disabled = true;
+
+        const updateBulkDeleteState = () => {
+            const anyChecked = taskCheckboxes.some(cb => cb.checked);
+            bulkDeleteButton.disabled = !anyChecked;
+        };
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', () => {
+                taskCheckboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                });
+                updateBulkDeleteState();
+            });
+        }
+
+        taskCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (!cb.checked && selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                } else if (selectAllCheckbox && taskCheckboxes.every(box => box.checked)) {
+                    selectAllCheckbox.checked = true;
+                }
+                updateBulkDeleteState();
+            });
+        });
+
+        if (bulkDeleteForm) {
+            bulkDeleteForm.addEventListener('submit', () => {
+                bulkDeleteButton.disabled = true;
+            });
+        }
+
+        updateBulkDeleteState();
+    }
 });
 </script>

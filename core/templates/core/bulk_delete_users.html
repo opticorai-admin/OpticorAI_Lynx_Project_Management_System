@@ -1,0 +1,92 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fa fa-users-slash"></i> Delete Selected Users
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h5 class="mb-2">Are you sure you want to delete these users?</h5>
+                        <p class="mb-0">
+                            This action cannot be undone. All related assignments and access for the selected users will be permanently removed.
+                        </p>
+                    </div>
+
+                    <p class="mb-3">
+                        You selected <strong>{{ selected_count }}</strong> user{{ selected_count|pluralize }}.
+                        {% if restricted_count %}
+                            <span class="text-muted">
+                                {{ restricted_count }} of them {{ restricted_count|pluralize:"is,are" }} protected and will remain untouched.
+                            </span>
+                        {% endif %}
+                    </p>
+
+                    <div class="list-group mb-3">
+                        {% for user in deletable_users %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong data-i18n-skip>{{ user.get_full_name|default:user.username }}</strong>
+                                    <div class="small text-muted mt-1">
+                                        <div><strong>Email:</strong> {{ user.email|default:"-" }}</div>
+                                        <div><strong>Role:</strong> {{ user.get_user_type_display }}</div>
+                                        <div data-i18n-skip><strong>Supervisor:</strong> {{ user.under_supervision.get_full_name|default:"-" }}</div>
+                                    </div>
+                                </div>
+                                <span class="badge badge-secondary text-uppercase">
+                                    {{ user.user_type }}
+                                </span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item">
+                            <em>No users can be deleted with your current permissions.</em>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if restricted_users %}
+                    <div class="alert alert-info">
+                        <strong>These users will not be deleted:</strong>
+                        <ul class="mb-0 pl-3">
+                            {% for user in restricted_users %}
+                            <li data-i18n-skip>{{ user.get_full_name|default:user.username }}</li>
+                            {% endfor %}
+                        </ul>
+                        <small class="d-block text-muted mt-2">
+                            You need the appropriate permissions to remove them.
+                        </small>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="{{ post_target }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="confirm" value="1">
+                        <input type="hidden" name="next" value="{{ next_url }}">
+                        {% for user_id in user_ids %}
+                        <input type="hidden" name="user_ids" value="{{ user_id }}">
+                        {% endfor %}
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ return_url }}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fa fa-trash"></i> Confirm Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

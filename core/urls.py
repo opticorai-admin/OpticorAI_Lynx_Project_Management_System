@@ -20,6 +20,7 @@ urlpatterns = [
     path('users/<int:user_id>/edit/', views.EditUserProfileView.as_view(), name='edit-user-profile'),
     path('users/<int:user_id>/tasks/', views.UserTasksView.as_view(), name='user-tasks'),
     path('users/<int:pk>/delete/', views.UserDeleteView.as_view(), name='delete-user'),
+    path('users/bulk-delete/', views.UserBulkDeleteView.as_view(), name='users-bulk-delete'),
     path('users/<int:user_id>/set-password/', views.AdminSetPasswordView.as_view(), name='admin-set-password'),
     
     # --- Email Testing (Admin Only) ---
@@ -32,6 +33,7 @@ urlpatterns = [
     path('projects/task/<int:task_id>/', views.TaskDetailView.as_view(), name='task-detail'),
     path('projects/task/<int:task_id>/edit/', views.EditTaskView.as_view(), name='edit-task'),
     path('projects/task/<int:task_id>/delete/', views.DeleteTaskView.as_view(), name='delete-task'),
+    path('projects/tasks/bulk-delete/', views.TaskBulkDeleteView.as_view(), name='tasks-bulk-delete'),
     path('projects/task/<int:task_id>/download/', views.DownloadFileView.as_view(), name='download-file'),
     path('projects/task/<int:task_id>/reminder/', views.CreateTaskReminderView.as_view(), name='create-task-reminder'),
     path('projects/task/<int:task_id>/reminder/<int:reminder_id>/update/', views.UpdateTaskReminderView.as_view(), name='update-task-reminder'),

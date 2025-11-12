@@ -30,6 +30,7 @@ from django.core.cache import cache
 from django.db.models import Case, When, IntegerField, Count
 from django.db.models import Count, Case, When, IntegerField
 from .models import CustomUser, Task, KPI, QualityType, Notification, TaskPriorityType, TaskEvaluationSettings, EmployeeProgress, ChatBot, ChatMessage
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.timezone import make_aware
 from datetime import datetime, timedelta
 from .forms import (
@@ -2648,7 +2649,260 @@ class DeleteTaskView(LoginRequiredMixin, View):
         task.delete()
         messages.success(request, 'Task deleted successfully!')
         return redirect('core:projects')
-    
+
+
+class TaskBulkDeleteView(LoginRequiredMixin, View):
+    template_name = 'core/bulk_delete_tasks.html'
+
+    def post(self, request):
+        user = request.user
+
+        # Admins are explicitly restricted from managing tasks anywhere
+        if user.user_type == 'admin':
+            messages.error(request, 'Admins cannot delete tasks.')
+            return redirect('core:dashboard')
+
+        task_ids = request.POST.getlist('task_ids')
+        if not task_ids:
+            task_ids = request.POST.getlist('task_ids[]')
+        next_url = request.POST.get('next', '')
+
+        if not task_ids:
+            messages.warning(request, 'No tasks were selected for deletion.')
+            return self._redirect_to_next(next_url, request)
+
+        tasks = list(
+            Task.objects.filter(id__in=task_ids).select_related('responsible', 'priority', 'kpi')
+        )
+        if not tasks:
+            messages.warning(request, 'Selected tasks could not be found.')
+            return self._redirect_to_next(next_url, request)
+
+        deletable_tasks, restricted_tasks = self._split_tasks(tasks, user)
+        is_confirmation = request.POST.get('confirm') == '1'
+
+        if is_confirmation:
+            # Re-evaluate tasks to ensure permissions have not changed
+            if not deletable_tasks:
+                messages.warning(
+                    request,
+                    'You do not have permission to delete the selected tasks.'
+                )
+                return self._redirect_to_next(next_url, request)
+
+            deleted_count = self._delete_tasks(deletable_tasks, user)
+
+            if deleted_count:
+                messages.success(
+                    request,
+                    f"{deleted_count} task{'s' if deleted_count != 1 else ''} deleted successfully!"
+                )
+
+            if restricted_tasks:
+                restricted_labels = ", ".join(self._format_task_label(task) for task in restricted_tasks)
+                messages.warning(
+                    request,
+                    f'You do not have permission to delete: {restricted_labels}.'
+                )
+
+            return self._redirect_to_next(next_url, request)
+
+        if not deletable_tasks:
+            messages.warning(
+                request,
+                'None of the selected tasks can be deleted.'
+            )
+            return self._redirect_to_next(next_url, request)
+
+        context = {
+            'deletable_tasks': deletable_tasks,
+            'restricted_tasks': restricted_tasks,
+            'next_url': next_url,
+            'post_target': request.path,
+            'selected_count': len(task_ids),
+            'deletable_count': len(deletable_tasks),
+            'restricted_count': len(restricted_tasks),
+            'task_ids': [task.id for task in deletable_tasks],
+            'return_url': self._get_return_url(next_url, request),
+        }
+        return render(request, self.template_name, context)
+
+    @staticmethod
+    def _format_task_label(task):
+        if task.issue_action:
+            trimmed = task.issue_action.strip()
+            if len(trimmed) > 40:
+                return f"{trimmed[:40]}..."
+            return trimmed
+        return f"Task #{task.id}"
+
+    @staticmethod
+    def _split_tasks(tasks, user):
+        deletable_tasks = []
+        restricted_tasks = []
+
+        for task in tasks:
+            can_edit = False
+            try:
+                can_edit = task.can_user_edit(user)
+            except AttributeError:
+                can_edit = False
+
+            if can_edit and not (user.user_type == 'manager' and task.responsible == user):
+                deletable_tasks.append(task)
+            else:
+                restricted_tasks.append(task)
+
+        return deletable_tasks, restricted_tasks
+
+    def _delete_tasks(self, tasks, user):
+        deleted_count = 0
+        for task in tasks:
+            if user.user_type == 'manager' and task.responsible and task.responsible != user:
+                issue_action_text = (task.issue_action or '').strip()
+                if not issue_action_text:
+                    issue_action_text = f"Task #{task.id}"
+                elif len(issue_action_text) > 40:
+                    issue_action_text = f"{issue_action_text[:40]}..."
+                notification_message = f"Your task '{issue_action_text}' has been deleted by your supervisor."
+                Notification.objects.create(
+                    recipient=task.responsible,
+                    sender=user,
+                    message=notification_message,
+                    link="/projects/"
+                )
+            task.delete()
+            deleted_count += 1
+        return deleted_count
+
+    def _redirect_to_next(self, next_url, request):
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return redirect(next_url)
+        return redirect('core:projects')
+
+    def _get_return_url(self, next_url, request):
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return next_url
+        return reverse_lazy('core:projects')
+
+
+class UserBulkDeleteView(LoginRequiredMixin, View):
+    template_name = 'core/bulk_delete_users.html'
+
+    def post(self, request):
+        acting_user = request.user
+
+        if acting_user.user_type not in ('admin', 'manager'):
+            messages.error(request, 'You do not have permission to delete users.')
+            return redirect('core:dashboard')
+
+        user_ids = request.POST.getlist('user_ids')
+        if not user_ids:
+            user_ids = request.POST.getlist('user_ids[]')
+        next_url = request.POST.get('next', '')
+
+        if not user_ids:
+            messages.warning(request, 'No users were selected for deletion.')
+            return self._redirect_to_next(next_url, request)
+
+        selected_users = list(
+            CustomUser.objects.filter(id__in=user_ids).select_related('under_supervision')
+        )
+        if not selected_users:
+            messages.warning(request, 'Selected users could not be found.')
+            return self._redirect_to_next(next_url, request)
+
+        deletable_users, restricted_users = self._split_users(selected_users, acting_user)
+        is_confirmation = request.POST.get('confirm') == '1'
+
+        if is_confirmation:
+            if not deletable_users:
+                messages.warning(request, 'You do not have permission to delete the selected users.')
+                return self._redirect_to_next(next_url, request)
+
+            confirmation_ids = [user.id for user in deletable_users]
+            confirmation_users = list(
+                CustomUser.objects.filter(id__in=confirmation_ids).select_related('under_supervision')
+            )
+            deletable_users, restricted_users = self._split_users(confirmation_users, acting_user)
+
+            if not deletable_users:
+                messages.warning(request, 'You do not have permission to delete the selected users.')
+                return self._redirect_to_next(next_url, request)
+
+            deleted_count = self._delete_users(deletable_users)
+
+            if deleted_count:
+                messages.success(
+                    request,
+                    f"{deleted_count} user{'s' if deleted_count != 1 else ''} deleted successfully!"
+                )
+
+            if restricted_users:
+                messages.warning(
+                    request,
+                    'Some users could not be deleted due to insufficient permissions.'
+                )
+
+            return self._redirect_to_next(next_url, request)
+
+        if not deletable_users:
+            messages.warning(request, 'None of the selected users can be deleted.')
+            return self._redirect_to_next(next_url, request)
+
+        context = {
+            'deletable_users': deletable_users,
+            'restricted_users': restricted_users,
+            'selected_count': len(user_ids),
+            'restricted_count': len(restricted_users),
+            'user_ids': [user.id for user in deletable_users],
+            'post_target': request.path,
+            'next_url': next_url,
+            'return_url': self._get_return_url(next_url, request),
+        }
+        return render(request, self.template_name, context)
+
+    @staticmethod
+    def _split_users(users, acting_user):
+        deletable = []
+        restricted = []
+
+        for target in users:
+            if target.id == acting_user.id:
+                restricted.append(target)
+                continue
+
+            if acting_user.user_type == 'admin':
+                deletable.append(target)
+            elif acting_user.user_type == 'manager':
+                if target.under_supervision_id == acting_user.id:
+                    deletable.append(target)
+                else:
+                    restricted.append(target)
+            else:
+                restricted.append(target)
+
+        return deletable, restricted
+
+    @staticmethod
+    def _delete_users(users):
+        deleted_count = 0
+        for target in users:
+            target.delete()
+            deleted_count += 1
+        return deleted_count
+
+    def _redirect_to_next(self, next_url, request):
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return redirect(next_url)
+        return redirect('core:users')
+
+    def _get_return_url(self, next_url, request):
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return next_url
+        return reverse_lazy('core:users')
+
+
 class UserTasksView(LoginRequiredMixin, View):
     def get(self, request, user_id):
         user = request.user
