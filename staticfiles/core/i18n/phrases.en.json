@@ -538,8 +538,10 @@
   "Recipient":"Recipient",
   "Repeats":"Repeats",
   "AI Features":"AI Features",
-  "AI Chatbot":"AI Chatbot"
-  
+  "AI Chatbot":"AI Chatbot",
+  "Theme":"Theme",
+  "Light Mode":"Light Mode",
+  "Dark Mode":"Dark Mode"
 }
 
 

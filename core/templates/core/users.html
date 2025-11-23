@@ -103,7 +103,7 @@
                         <form method="post" action="{% url 'core:users-bulk-delete' %}" id="bulkDeleteForm">
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            {% if user.user_type in 'admin manager' %}
+                            {% if user.user_type == 'admin' %}
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="text-muted small">
                                     Select users below to remove them permanently.
@@ -117,7 +117,7 @@
                             <table class="table table-responsive-sm table-hover table-outline mb-5" id="usersTable">
                                 <thead class="thead-light">
                                 <tr>
-                                    {% if user.user_type in 'admin manager' %}
+                                    {% if user.user_type == 'admin' %}
                                     <th>
                                         <!-- <input type="checkbox" id="selectAllUsers"> -->
                                     </th>
@@ -135,7 +135,7 @@
                     <tbody>
                         {% for user1 in users %}
                         <tr>
-                            {% if user.user_type in 'admin manager' %}
+                            {% if user.user_type == 'admin' %}
                             <td class="text-center align-middle">
                                 <input type="checkbox" name="user_ids" value="{{ user1.id }}" class="user-select-checkbox">
                             </td>

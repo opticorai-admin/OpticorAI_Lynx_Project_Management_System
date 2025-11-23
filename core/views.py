@@ -2792,7 +2792,7 @@ class UserBulkDeleteView(LoginRequiredMixin, View):
     def post(self, request):
         acting_user = request.user
 
-        if acting_user.user_type not in ('admin', 'manager'):
+        if acting_user.user_type != 'admin':
             messages.error(request, 'You do not have permission to delete users.')
             return redirect('core:dashboard')
 
@@ -2874,11 +2874,6 @@ class UserBulkDeleteView(LoginRequiredMixin, View):
 
             if acting_user.user_type == 'admin':
                 deletable.append(target)
-            elif acting_user.user_type == 'manager':
-                if target.under_supervision_id == acting_user.id:
-                    deletable.append(target)
-                else:
-                    restricted.append(target)
             else:
                 restricted.append(target)
 
@@ -3483,11 +3478,10 @@ class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         user = self.request.user
         target_user = self.get_object()
         
-        # Check permissions
+        # Only admin can delete users
         if user.user_type == 'admin':
-            return True
-        elif user.user_type == 'manager':
-            return target_user.under_supervision == user
+            # Admin cannot delete themselves
+            return target_user.id != user.id
         return False
 
     def delete(self, request, *args, **kwargs):

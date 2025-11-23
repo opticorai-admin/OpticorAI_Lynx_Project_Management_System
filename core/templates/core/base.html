@@ -25,6 +25,7 @@
   <link href="{% static 'core/css/simple-line-icons.min.css' %}" rel="stylesheet">
   <link href="{% static 'core/css/estilo.css' %}" rel="stylesheet">
   <link href="{% static 'core/css/style.css' %}" rel="stylesheet">
+  <link href="{% static 'core/css/theme-toggle.css' %}" rel="stylesheet">
   <!-- Language assets -->
   {% get_static_prefix as STATIC_PREFIX %}
   <script>window.STATIC_URL = "{{ STATIC_PREFIX }}";</script>
@@ -33,6 +34,30 @@
 </head>
 {% block body %}
 <body class="app header-fixed sidebar-fixed aside-menu-fixed aside-menu-hidden">
+  <script>
+    (function () {
+      var key = 'lynx.theme';
+      var THEMES = ['light', 'dark'];
+      var theme = 'light';
+      try {
+        var stored = localStorage.getItem(key);
+        if (THEMES.indexOf(stored) !== -1) {
+          theme = stored;
+        }
+      } catch (e) { /* ignore */ }
+      var root = document.documentElement;
+      var body = document.body;
+      if (!body || !body.classList) { return; }
+      THEMES.forEach(function (name) {
+        body.classList.remove('theme-' + name);
+        root.classList.remove('theme-' + name);
+      });
+      body.classList.add('theme-' + theme);
+      root.classList.add('theme-' + theme);
+      root.setAttribute('data-theme', theme);
+      body.setAttribute('data-theme', theme);
+    })();
+  </script>
   <header class="app-header navbar">
     <button class="navbar-toggler mobile-sidebar-toggler d-lg-none mr-auto" type="button">
       <span class="navbar-toggler-icon"></span>
@@ -245,6 +270,23 @@
             </ul>
           </li>
           {% endif %}
+          <!-- Theme selector -->
+          <li class="nav-item nav-dropdown">
+            <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-adjust"></i> <span data-i18n="nav.theme">Theme</span></a>
+            <ul class="nav-dropdown-items">
+              <li class="nav-item">
+                <a class="nav-link theme-switch" href="#" data-theme-switch="light">
+                  <i class="fa fa-sun-o ml-2"></i> <span data-i18n="nav.theme_light">Light Mode</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link theme-switch" href="#" data-theme-switch="dark">
+                  <i class="fa fa-moon-o ml-2"></i> <span data-i18n="nav.theme_dark">Dark Mode</span>
+                </a>
+              </li>
+            </ul>
+          </li>
+
           <!-- Languages selector (frontend only) -->
           <li class="nav-item nav-dropdown">
             <a class="nav-link nav-dropdown-toggle" href="#"><i class="fa fa-globe"></i> <span data-i18n="nav.languages">Languages</span></a>
@@ -326,6 +368,7 @@
     <script src="{% static 'core/vendors/js/Chart.min.js'%}"></script>
     <script src="{% static 'core/js/app.js'%}"></script>
     <script src="{% static 'core/js/main.js'%}"></script>
+    <script src="{% static 'core/js/theme.js'%}"></script>
     <script src="{% static 'core/js/notifications.js'%}"></script>
     <script>
       // Inline helper: mark unread dropdown items as read when clicked
