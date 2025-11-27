@@ -219,6 +219,7 @@ body.theme-dark table {
 body.theme-dark .table thead th {
   background-color: #1f2937;
   border-color: #334155;
+  color: #ffffff;
 }
 
 body.theme-dark .table td,
@@ -258,5 +259,14 @@ body.theme-dark .app-footer {
 .sidebar .nav-link.theme-option-active {
   background-color: rgba(32, 168, 216, 0.12);
   color: #20a8d8;
+}
+
+/* ---------------------------------
+   Text color inversion for themes
+   Ensure Bootstrap's .text-dark works in dark mode
+   --------------------------------- */
+body.theme-dark .text-dark,
+body.theme-dark a.text-dark {
+  color: #f8fafc !important;
 }
 

@@ -49,18 +49,21 @@
     applyTheme(safeTheme);
   }
 
-  function handleClick(event) {
-    var trigger = event.target.closest('[data-theme-switch]');
-    if (!trigger) { return; }
-    event.preventDefault();
-    var desired = trigger.getAttribute('data-theme-switch');
-    if (!desired) { return; }
-    persistTheme(desired);
+  function bindThemeSwitches() {
+    var switches = document.querySelectorAll('[data-theme-switch]');
+    switches.forEach(function (node) {
+      node.addEventListener('click', function (event) {
+        event.preventDefault();
+        var desired = node.getAttribute('data-theme-switch');
+        if (!desired) { return; }
+        persistTheme(desired);
+      });
+    });
   }
 
   function initThemeSwitcher() {
     applyTheme(getStoredTheme());
-    document.addEventListener('click', handleClick);
+    bindThemeSwitches();
     window.addEventListener('storage', function (evt) {
       if (evt.key === THEME_KEY) {
         applyTheme(evt.newValue);

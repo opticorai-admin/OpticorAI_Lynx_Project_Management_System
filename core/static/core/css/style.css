@@ -13604,6 +13604,7 @@ body.theme-dark .card {
 
 body.theme-dark .table thead th {
   background-color: #0f172a;
+  color: #ffffff;
 }
 
 body.theme-dark .table-striped tbody tr:nth-of-type(odd) {
