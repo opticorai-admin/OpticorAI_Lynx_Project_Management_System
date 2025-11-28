@@ -78,6 +78,7 @@ body.theme-dark .card-footer {
 body.theme-dark .table td,
 body.theme-dark .table th {
   border-color: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
 }
 
 body.theme-dark .table-striped tbody tr:nth-of-type(odd) {
@@ -225,6 +226,7 @@ body.theme-dark .table thead th {
 body.theme-dark .table td,
 body.theme-dark .table th {
   border-color: #1e293b;
+  color: #e2e8f0;
 }
 
 body.theme-dark .dropdown-menu {
@@ -261,12 +263,69 @@ body.theme-dark .app-footer {
   color: #20a8d8;
 }
 
-/* ---------------------------------
-   Text color inversion for themes
-   Ensure Bootstrap's .text-dark works in dark mode
-   --------------------------------- */
+/* ============================================
+   COMPREHENSIVE TEXT COLOR THEME INVERSION
+   ============================================
+   Black Text -> White Text in Dark Mode
+   White Text -> Black Text in Light Mode
+   ============================================ */
+
+/* Dark Mode: Make .text-dark become white/light */
 body.theme-dark .text-dark,
-body.theme-dark a.text-dark {
+body.theme-dark a.text-dark,
+body.theme-dark .text-dark strong,
+body.theme-dark .text-dark span,
+body.theme-dark .text-dark * {
   color: #f8fafc !important;
+}
+
+body.theme-dark a.text-dark:hover,
+body.theme-dark a.text-dark:focus {
+  color: #ffffff !important;
+}
+
+/* Dark Mode: Table body cells should have light text */
+body.theme-dark .table tbody td,
+body.theme-dark .table tbody td *,
+body.theme-dark .table tbody td a,
+body.theme-dark .table tbody td strong {
+  color: #e2e8f0 !important;
+}
+
+/* Ensure table body links are visible in dark mode */
+body.theme-dark .table tbody td a.text-dark,
+body.theme-dark .table tbody td a.text-dark strong,
+body.theme-dark .table tbody td a.text-dark * {
+  color: #f8fafc !important;
+}
+
+body.theme-dark .table tbody td a.text-dark:hover,
+body.theme-dark .table tbody td a.text-dark:focus {
+  color: #ffffff !important;
+}
+
+/* Light Mode: Make .text-white become dark/black */
+body.theme-light .text-white,
+body.theme-light a.text-white,
+body.theme-light .text-white strong,
+body.theme-light .text-white span,
+body.theme-light .text-white * {
+  color: #151b1e !important;
+}
+
+body.theme-light a.text-white:hover,
+body.theme-light a.text-white:focus {
+  color: #000000 !important;
+}
+
+/* Additional specificity for nested elements in tables */
+body.theme-dark .table tbody tr td a.text-dark strong,
+body.theme-dark .table tbody tr td a.text-dark span {
+  color: #f8fafc !important;
+}
+
+body.theme-light .table tbody tr td a.text-white strong,
+body.theme-light .table tbody tr td a.text-white span {
+  color: #151b1e !important;
 }
 
